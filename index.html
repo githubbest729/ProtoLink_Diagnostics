@@ -74,32 +74,43 @@
       <p class="hint" id="mb-parse-msg" role="status"></p>
     </div>
 
-    <details class="card" id="ser-card">
-      <summary><h2 class="inline">Live Serial Sniffer</h2> <span class="muted">— RS-485 / COM via Web Serial</span></summary>
+    <div class="dock" id="ser-dock" role="group" aria-label="Serial connection">
+      <div class="dock-row">
+        <span class="led off" id="ser-led" aria-hidden="true"></span>
+        <strong class="dock-title">Serial</strong>
+        <span class="dock-status" id="ser-status" role="status">Not connected</span>
+      </div>
       <div class="banner warnbox" id="ser-warn" role="alert" hidden></div>
+      <div class="dock-row dock-ctl">
+        <label class="dock-f"><span>Baud</span>
+          <select id="ser-baud" aria-label="Baud rate"><option>9600</option><option>19200</option><option>38400</option><option>115200</option></select></label>
+        <label class="dock-f"><span>Parity</span>
+          <select id="ser-parity" aria-label="Parity"><option value="none">None</option><option value="even" selected>Even</option><option value="odd">Odd</option></select></label>
+        <label class="dock-f"><span>Data</span>
+          <select id="ser-data" disabled aria-label="Data bits"><option>8</option></select></label>
+        <label class="dock-f"><span>Stop</span>
+          <select id="ser-stop" aria-label="Stop bits"><option value="1">1</option><option value="2">2</option></select></label>
+        <button class="btn primary small" id="ser-connect" type="button">Connect Serial (RS-485 / COM)</button>
+        <button class="btn small" id="ser-disconnect" type="button" disabled>Disconnect</button>
+        <button class="btn small" id="ser-pause" type="button" disabled>Pause</button>
+      </div>
+    </div>
+
+    <details class="card" id="ser-card">
+      <summary><h2 class="inline">Live Serial Sniffer</h2> <span class="muted">— captured frames, options, transmit</span></summary>
+      <p class="hint">Sniffing is passive — wire the adapter in parallel (A/B + ground) with the bus. The connection bar above stays on screen while you analyze.</p>
       <div class="grid">
-        <label class="sel"><span>Baud rate</span>
-          <select id="ser-baud"><option>9600</option><option>19200</option><option>38400</option><option>115200</option></select></label>
-        <label class="sel"><span>Parity</span>
-          <select id="ser-parity"><option value="none">None</option><option value="even" selected>Even</option><option value="odd">Odd</option></select></label>
-        <label class="sel"><span>Data bits</span>
-          <select id="ser-data" disabled><option>8</option></select></label>
-        <label class="sel"><span>Stop bits</span>
-          <select id="ser-stop"><option value="1">1</option><option value="2">2</option></select></label>
         <label class="sel"><span>Frame gap (ms, blank = auto)</span>
           <input id="ser-gap" type="text" inputmode="decimal" placeholder="auto"></label>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="ser-connect" type="button">Connect Serial (RS-485 / COM)</button>
-        <button class="btn" id="ser-disconnect" type="button" disabled>Disconnect</button>
-        <button class="btn" id="ser-pause" type="button" disabled>Pause</button>
-        <button class="btn" id="ser-clear" type="button">Clear</button>
       </div>
       <div class="row">
         <label class="check"><input type="checkbox" id="ser-auto" checked> Auto-analyze newest frame</label>
         <label class="check"><input type="checkbox" id="ser-raw"> Show raw byte stream</label>
       </div>
-      <p class="hint" id="ser-status" role="status">Not connected. Sniffing is passive — wire the adapter in parallel (A/B) with the bus.</p>
+      <div class="row">
+        <button class="btn" id="ser-clear" type="button">Clear</button>
+        <button class="btn" id="ser-save" type="button">Save captured frames</button>
+      </div>
       <div class="tablewrap"><table class="tbl" id="ser-table" hidden>
         <thead><tr><th>#</th><th>Time</th><th>Len</th><th>CRC</th><th>Frame</th><th></th></tr></thead><tbody id="ser-body"></tbody></table></div>
       <pre class="logbox rawbox" id="ser-rawbox" hidden></pre>
@@ -150,7 +161,10 @@
     <div class="card">
       <h2>OPC DA / UA Troubleshooter</h2>
       <label for="opc-search" class="lbl">Search symptoms, error codes (0x80070005), quality values, “DCOM”, “timeout”, “certificate”…</label>
-      <input id="opc-search" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. 0x800706BA or bad quality">
+      <div class="searchrow">
+      <input id="opc-search" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. 0x800706BA or bad quality" aria-label="Search troubleshooting articles">
+      <button class="btn" id="opc-toggle" type="button" aria-label="Expand all articles">Expand all</button>
+    </div>
       <div class="chips" id="opc-chips" role="group" aria-label="Filter"></div>
       <p class="hint" id="opc-count" role="status"></p>
     </div>
@@ -215,8 +229,9 @@
       <textarea id="log-input" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste log lines here…"></textarea>
       <div class="row">
         <button class="btn primary" id="log-analyze" type="button">Analyze</button>
-        <button class="btn" id="log-sample" type="button">Sample</button>
+        <label class="sel"><span>Sample logs</span><select id="log-preset" aria-label="Load a sample log"><option value="">Load a sample…</option></select></label>
         <label class="btn filebtn">Open file<input id="log-file" type="file" accept=".log,.txt,.csv,text/*"></label>
+        <button class="btn" id="log-save" type="button">Save to notes</button>
         <button class="btn" id="log-clear" type="button">Clear</button>
       </div>
       <div class="row">
@@ -239,8 +254,11 @@
 
   <!-- ===================================================== TOOLS -->
   <section class="panel" id="tab-tools" role="tabpanel" aria-labelledby="t-tools" hidden>
-    <div class="card">
-      <h2>Modicon Address ⇄ Protocol Offset</h2>
+    <div class="toolbar">
+      <span class="muted">Tap a tool to open it. Open/closed state is remembered on this device.</span>
+      <button class="btn small" id="tools-toggle" type="button">Expand all</button>
+    </div>
+    <details class="card tool" id="tool-modicon" data-tool="modicon"><summary><h2 class="inline">Modicon Address ⇄ Protocol Offset</h2></summary>
       <label for="ad-input" class="lbl">Modicon reference (40001 or 400001)</label>
       <input id="ad-input" type="text" inputmode="numeric" autocomplete="off" placeholder="40001">
       <div id="ad-out" aria-live="polite"></div>
@@ -251,10 +269,9 @@
         <label class="sel"><span>Format</span><select id="ad2-digits"><option value="5">5-digit</option><option value="6">6-digit</option></select></label>
       </div>
       <div id="ad2-out" aria-live="polite"></div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2>PLC Endianness &amp; Word Swapper (32 / 64-bit)</h2>
+    <details class="card tool" id="tool-endian" data-tool="endian"><summary><h2 class="inline">PLC Endianness &amp; Word Swapper (32 / 64-bit)</h2></summary>
       <p class="hint">Scrambled floats between Siemens, Rockwell and Modbus devices are usually a byte/word order problem. Enter what you <em>read</em> and see every interpretation side by side.</p>
       <div class="grid">
         <label class="sel"><span>Width</span><select id="en-width"><option value="32">32-bit (2 registers)</option><option value="64">64-bit (4 registers)</option></select></label>
@@ -277,10 +294,9 @@
       </div>
       <div id="en-enc" aria-live="polite"></div>
       <p class="hint">Vendor labels are typical conventions only; the real order also depends on the gateway/driver in between. Trust the order that gives a plausible value.</p>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2>4–20 mA Loop Calculator</h2>
+    <details class="card tool" id="tool-loop" data-tool="loop"><summary><h2 class="inline">4–20 mA Loop Calculator</h2></summary>
       <div class="row">
         <button class="btn small" type="button" data-lp="0,100,bar">0–100 bar</button>
         <button class="btn small" type="button" data-lp="-50,150,°C">−50…150 °C</button>
@@ -314,10 +330,9 @@
         <label class="sel"><span>Voltage (V) — type to reverse</span><input id="oh-v" type="text" inputmode="decimal" value="1"></label>
       </div>
       <div id="oh-out" aria-live="polite"></div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2>IPv4 Subnet &amp; CIDR Planner</h2>
+    <details class="card tool" id="tool-subnet" data-tool="subnet"><summary><h2 class="inline">IPv4 Subnet &amp; CIDR Planner</h2></summary>
       <label for="sn-in" class="lbl">Address with prefix (192.168.1.50/24) or address + mask (10.0.0.5 255.255.255.240)</label>
       <input id="sn-in" type="text" autocomplete="off" spellcheck="false" placeholder="192.168.1.50/24">
       <div id="sn-out" aria-live="polite"></div>
@@ -326,17 +341,15 @@
         <label class="sel"><span>Split into /…</span><input id="sn-split" type="text" inputmode="numeric" placeholder="28"></label>
       </div>
       <div id="sn-extra" aria-live="polite"></div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2>CRC-16 / LRC Calculator</h2>
+    <details class="card tool" id="tool-crc" data-tool="crc"><summary><h2 class="inline">CRC-16 / LRC Calculator</h2></summary>
       <label for="ck-input" class="lbl">Hex bytes WITHOUT checksum</label>
       <input id="ck-input" type="text" autocomplete="off" spellcheck="false" placeholder="01 03 00 00 00 0A">
       <div id="ck-out" aria-live="polite"></div>
-    </div>
+    </details>
 
-    <div class="card">
-      <h2>Linear Scaling (raw → engineering units)</h2>
+    <details class="card tool" id="tool-scale" data-tool="scale"><summary><h2 class="inline">Linear Scaling (raw → engineering units)</h2></summary>
       <div class="row">
         <button class="btn small" type="button" data-preset="5530,27648,4,20">Siemens 4-20 mA (5530…27648)</button>
         <button class="btn small" type="button" data-preset="0,27648,0,100">Siemens 0-27648 → 0-100</button>
@@ -351,7 +364,7 @@
         <label class="sel"><span>EU max</span><input id="sc-emax" type="text" value="100"></label>
       </div>
       <div id="sc-out" aria-live="polite"></div>
-    </div>
+    </details>
   </section>
 
   <!-- ===================================================== HISTORY -->
@@ -370,6 +383,8 @@
     </div>
     <div class="card">
       <div class="row">
+        <button class="btn" id="hist-csv" type="button">Download CSV</button>
+        <button class="btn" id="hist-txt" type="button">Download TXT</button>
         <button class="btn" id="hist-export" type="button">Export all (JSON)</button>
         <button class="btn danger" id="hist-clear" type="button">Delete everything</button>
       </div>
@@ -378,7 +393,7 @@
 </main>
 
 <footer class="foot">
-  <span>ProtoLink Diagnostics v1.1.0</span> · <a href="privacy.html">Privacy</a> ·
+  <span>ProtoLink Diagnostics v1.2.0</span> · <a href="privacy.html">Privacy</a> ·
   <span>100% client-side. Verify critical settings against vendor documentation.</span>
 </footer>
 
@@ -393,6 +408,7 @@
 <script src="js/instrument.js"></script>
 <script src="js/subnet.js"></script>
 <script src="js/tag-helper.js"></script>
+<script src="js/export.js"></script>
 <script src="app.js"></script>
 <script src="sw-register.js"></script>
 </body>

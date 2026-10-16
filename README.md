@@ -12,7 +12,16 @@ Offline-capable PWA for SCADA field engineers: **Modbus frame analyzer**, **OPC 
 | **Tools** | Modicon ⇄ protocol offset, **PLC endianness & word swapper (32/64-bit)**, **4–20 mA loop calculator + Ohm's-law drop**, **IPv4 subnet/CIDR planner**, CRC-16/LRC calculator, linear scaling (e.g. Siemens 0–27648). |
 | **Saved** | Save frames and field notes to IndexedDB on the device; export to JSON. |
 
-## What's new in v1.1.0
+## What's new in v1.2.0 (field-usability update)
+
+1. **One-click copy icons** — a small ⧉ button beside every decoded value in the Modbus analyzer (start address → *offset* and *Modicon*; quantity, byte count; register U16 / I16 / hex; 32-bit U32 / I32 / Float32) and in all Endianness decode / encode tables, plus a *Copy registers* button. Copies the bare number (e.g. `655371`), nothing else, so there is no retyping. Falls back to a hidden-textarea copy where the Clipboard API is blocked.
+2. **Docked Web Serial status bar** — the Modbus tab now has a sticky bar (below the tab/top bar) with the connection LED, status text, baud / parity / stop-bit pickers and Connect / Disconnect / Pause. It stays on screen while you scroll large payloads; once connected the pickers collapse to a compact status line. Unsupported browsers (Firefox, Safari, iOS) show a red LED instead of a dead button.
+3. **OPC Expand all / Collapse all** beside the search box (acts on the currently filtered articles; the label follows your manual toggling).
+4. **CSV / TXT download in the Saved tab** — *Download CSV* and *Download TXT* for saved frames, notes and log snippets, merged chronologically with local + ISO timestamps (`protolink-saved-YYYYMMDD-HHMM.csv`). CSV has a UTF-8 BOM and CRLF so Excel opens it correctly; cells starting with `= + - @` are prefixed with `'` to prevent spreadsheet formula injection. Sniffer frames can be stored with their **original capture time** via *Save captured frames*, and parsed logs via *Save to notes*. JSON export remains.
+5. **Tools tab accordions** — each tool is a collapsible card; only the first is open by default, *Expand all / Collapse all* sits on top, and your open/closed choices are remembered on the device.
+6. **Log parser presets** — a dropdown replaces the single Sample button: Wonderware SMC log, Modbus timeout log, OPC DCOM error log, OPC UA session log, iFIX SCADA sync log (all synthetic, for practice and demos).
+
+## What was added in v1.1.0
 
 ### 1. Live Serial Sniffer (Modbus tab)
 Connects a USB-to-RS-485 / RS-232 adapter through the browser's native **Web Serial API** — no drivers, no server, no dependencies.
@@ -66,13 +75,13 @@ Everything uses relative paths, so it works from a repo sub-path or a custom dom
 - `.well-known/assetlinks.json` / `apple-app-site-association` are empty stubs (only needed if you later wrap the PWA as a Play Store TWA / iOS app).
 
 ## Shipping updates
-1. Change files, bump `VERSION` in `service-worker.js` (currently `1.1.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
+1. Change files, bump `VERSION` in `service-worker.js` (currently `1.2.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
 2. Users who already installed the app see a **"Reload to update"** banner when online.
 
 ## Local development / tests
 ```bash
 npm start        # http://localhost:8080 (service workers work on localhost)
-npm test         # Modbus parser/CRC/LRC, endianness, 4–20 mA/Ohm, subnet, serial framing + mock Web Serial, DBLoad/iFIX helper, precache list (Node ≥ 18, no dependencies)
+npm test         # Modbus parser/CRC/LRC, endianness, 4–20 mA/Ohm, subnet, serial framing + mock Web Serial, DBLoad/iFIX helper, copy-value extraction, CSV/TXT export, log presets, precache list (Node ≥ 18, no dependencies)
 ```
 Open `index.html` through a web server, not `file://`, or the service worker will not register.
 

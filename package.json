@@ -1,12 +1,12 @@
 {
   "name": "protolink-diagnostics",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Offline-capable Modbus frame analyzer, OPC DA/UA troubleshooter and log parser (PWA) for SCADA field engineers.",
   "private": true,
   "license": "MIT",
   "scripts": {
     "start": "npx --yes http-server . -p 8080 -c-1",
-    "test": "node tests/validator.test.js && node tests/converters.test.js && node tests/serial.test.js && node tests/taghelper.test.js && node tests/precache.test.js",
+    "test": "node tests/validator.test.js && node tests/converters.test.js && node tests/serial.test.js && node tests/taghelper.test.js && node tests/uidata.test.js && node tests/precache.test.js",
     "workbox": "npx --yes workbox-cli generateSW workbox-config.js"
   },
   "engines": { "node": ">=18" }

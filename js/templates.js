@@ -548,6 +548,74 @@
     },
   ];
 
+
+  // ---------------------------------------------------------------- log presets (synthetic training logs, not from a real plant)
+  T.logPresets = [
+    { id: 'smc', label: 'Wonderware SMC / ArchestrA log (mixed)', text: '' }, // filled below, once T.sampleLog exists
+    { id: 'modbus', label: 'Modbus timeout & exception log', text: [
+      '2026-10-16 06:12:01.004 Info   MBSerial DAServer  Topic PLC_07 opened COM3 9600 8E1',
+      '2026-10-16 06:12:01.250 Info   MBSerial DAServer  Poll slave 17 FC03 start 400001 qty 20',
+      '2026-10-16 06:12:02.251 Warn   MBSerial DAServer  Slave 17 reply timeout (1000 ms), retry 1/3',
+      '2026-10-16 06:12:03.253 Warn   MBSerial DAServer  Slave 17 reply timeout (1000 ms), retry 2/3',
+      '2026-10-16 06:12:04.255 Error  MBSerial DAServer  Slave 17 no response after 3 retries — marking topic PLC_07 offline',
+      '2026-10-16 06:12:04.260 Info   MBSerial DAServer  Item PLC_07.400001 quality 24 (Bad - Comm failure)',
+      '2026-10-16 06:12:09.300 Info   MBSerial DAServer  Slave 1 FC03 start 400251 qty 125',
+      '2026-10-16 06:12:09.341 Error  MBSerial DAServer  Modbus exception code 02 from slave 1 (FC03) — Illegal Data Address',
+      '2026-10-16 06:12:09.342 Warn   MBSerial DAServer  Reducing block size to 60 registers',
+      '2026-10-16 06:12:10.100 Error  MBSerial DAServer  CRC error in response from slave 4: got 0x9B00 expected 0x9BF6',
+      '2026-10-16 06:12:12.000 Error  MBTCP DAServer     Modbus exception 0B from unit 5 via gateway 10.10.5.20:502 (Gateway Target Device Failed to Respond)',
+      '2026-10-16 06:12:15.480 Warn   MBTCP DAServer     Connection closed by peer 10.10.5.20:502, reconnecting',
+      '2026-10-16 06:12:16.020 Info   MBTCP DAServer     Reconnected to 10.10.5.20:502',
+    ].join('\n') },
+    { id: 'dcom', label: 'OPC DCOM error log', text: [
+      '2026-10-16 07:30:11.100 Info   OPCClient  Connecting to OPC server Vendor.OPCServer.2 on node HIST02',
+      '2026-10-16 07:30:11.480 Error  OPCClient  CoCreateInstanceEx failed: 0x80070005 Access is denied.',
+      '2026-10-16 07:30:11.481 Warn   OPCClient  Retrying in 10 s (attempt 1)',
+      '2026-10-16 07:30:21.600 Error  OPCClient  RPC server is unavailable (0x800706BA) connecting to 192.168.20.14',
+      '2026-10-16 07:30:31.710 Error  OPCClient  Class not registered 0x80040154 for ProgID Vendor.OPCServer.2',
+      '2026-10-16 07:30:41.800 Error  OPCClient  OpcEnum browse failed: 0x80070005',
+      '2026-10-16 07:31:02.011 Info   OPCClient  Connected to Vendor.OPCServer.2',
+      '2026-10-16 07:31:02.500 Info   OPCClient  Group G1 added, update rate 1000 ms, 240 items',
+      '2026-10-16 07:31:03.020 Error  OPCClient  AddItem failed 0xC0040007 OPC_E_UNKNOWNITEMID for "Area1.Pump3.Flow"',
+      '2026-10-16 07:31:03.040 Error  OPCClient  Write rejected 0xC0040006 OPC_E_BADRIGHTS for "Area1.Pump3.Status"',
+      '2026-10-16 07:36:20.500 Warn   OPCClient  Group G1 callback timeout 0x800705B4 — server not responding',
+      '2026-10-16 07:36:25.000 Error  OPCClient  RPC call failed 0x800706BE; connection lost, reconnecting',
+      '2026-10-16 07:36:26.300 Info   OPCClient  Item Area1.Pump3.Flow quality 8 (Bad - Not connected)',
+      '2026-10-16 07:36:41.900 Info   OPCClient  Item Area1.Pump3.Flow quality 192 (Good)',
+      'System log 10036 DCOM: server-side authentication level too low (client 192.168.20.31)',
+    ].join('\n') },
+    { id: 'ua', label: 'OPC UA session & certificate log', text: [
+      '2026-10-16 08:00:01.100 Info   UA client  Discovery GetEndpoints opc.tcp://192.168.30.5:4840 — 3 endpoints',
+      '2026-10-16 08:00:01.600 Error  UA client  OpenSecureChannel failed: 0x80130000 BadSecurityChecksFailed',
+      '2026-10-16 08:00:01.601 Error  UA client  Server certificate rejected: 0x801A0000 BadCertificateUntrusted',
+      '2026-10-16 08:00:05.000 Error  UA client  0x80160000 BadCertificateHostNameInvalid: URL host 192.168.30.5 not in certificate SAN',
+      '2026-10-16 08:01:10.200 Info   UA client  Secure channel open (Basic256Sha256, SignAndEncrypt)',
+      '2026-10-16 08:01:10.700 Error  UA client  ActivateSession failed 0x80210000 BadIdentityTokenRejected',
+      '2026-10-16 08:02:00.100 Info   UA client  Session established; 120 monitored items, publishing interval 1000 ms',
+      '2026-10-16 08:05:44.900 Warn   UA client  Keep-alive timeout, no response for 15 s',
+      '2026-10-16 08:05:45.100 Error  UA client  0x800A0000 BadTimeout while reading ns=2;s=Boiler.Temp',
+      '2026-10-16 08:05:46.000 Error  UA client  0x80860000 BadSecureChannelClosed — connection lost, reconnecting',
+      '2026-10-16 08:05:50.300 Error  UA client  0x80250000 BadSessionIdInvalid after reconnect, creating new session',
+      '2026-10-16 08:06:02.000 Error  UA client  0x80340000 BadNodeIdUnknown for ns=3;s=Tank1.Level (namespace index changed?)',
+      '2026-10-16 08:06:02.500 Warn   UA client  Item quality uncertain 0x40920000 UncertainInitialValue',
+    ].join('\n') },
+    { id: 'ifix', label: 'GE iFIX network / redundancy log', text: [
+      '2026-10-16 09:10:00.100 Info   iFIX SCU      Local node SCADA1 started, SCADA support enabled',
+      '2026-10-16 09:10:02.400 Error  iFIX Network  Unable to connect to node SCADA2 — name not resolved',
+      '2026-10-16 09:10:12.400 Warn   iFIX Network  Retrying connection to SCADA2 (TCP/IP) retry 1',
+      '2026-10-16 09:10:22.400 Error  iFIX Network  Connection to node SCADA2 timed out',
+      '2026-10-16 09:12:30.000 Info   iFIX SAC      Driver MB1 initialised, device PLC_A at 192.168.40.10',
+      '2026-10-16 09:12:45.300 Error  iFIX Driver   MB1 device PLC_A not responding: reply timeout, comm failure',
+      '2026-10-16 09:12:45.320 Warn   iFIX SAC      Tank1_Lvl.F_CV quality bad (comm) — 12 blocks affected',
+      '2026-10-16 09:20:10.000 Warn   iFIX Redundancy  Backup SCADA synchronization lost with primary — heartbeat timeout',
+      '2026-10-16 09:20:10.050 Error  iFIX Redundancy  Network disconnected: partner SCADA1 unreachable',
+      '2026-10-16 09:20:11.000 Warn   iFIX Redundancy  Switchover to backup node SCADA2',
+      '2026-10-16 09:20:42.500 Info   iFIX Redundancy  Partner reconnected; database synchronizing',
+      '2026-10-16 09:21:05.000 Warn   iFIX SAC      Scan time exceeded on block group 500 ms (slow, degraded)',
+      '2026-10-16 09:30:00.000 Error  iFIX License  No valid license found — running in demo mode',
+    ].join('\n') },
+  ];
+
   // ---------------------------------------------------------------- Tag Helper sample
   T.tagSample = [
     '# TagName, Address, [type D/I/R], [comment], [EU], [min], [max]',
@@ -669,4 +737,5 @@
     '2026-10-15 08:04:55.600 Error  OPC UA client     Session failed: 0x801A0000 BadCertificateUntrusted',
     '2026-10-15 08:05:12.000 Error  OPC UA client     0x800A0000 BadTimeout while reading ns=2;s=Boiler.Temp',
   ].join('\n');
+  T.logPresets[0].text = T.sampleLog;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -265,6 +265,26 @@
     return out;
   }
 
+  /**
+   * Extract copy-ready plain values from a decoded field (so a technician can paste "655371", not retype it).
+   * @returns {Array<[string,string]>} [title, value] pairs
+   */
+  function copyValues(label, text) {
+    const out = [];
+    let m;
+    text = String(text || '');
+    if ((m = /^0x([0-9A-F]{4})(?: = (\d+))?\s+→\s+(\d{5,6})\b/.exec(text))) {
+      out.push(['offset', m[2] !== undefined ? m[2] : String(parseInt(m[1], 16))], ['Modicon', m[3]]);
+    } else if ((m = /^0x([0-9A-F]{4}) = (\d+)(?: \(signed (-?\d+)\))?/.exec(text))) {
+      out.push(['unsigned', m[2]]);
+      if (m[3] !== undefined) out.push(['signed', m[3]]);
+      out.push(['hex', '0x' + m[1]]);
+    } else if (/^(Quantity|Byte Count|Read Quantity|Write Quantity|Write Byte Count)$/.test(label) && (m = /^(\d+)/.exec(text))) {
+      out.push(['value', m[1]]);
+    }
+    return out;
+  }
+
   function looksTcp(b) {
     return b.length >= 8 && b[2] === 0 && b[3] === 0 && u16(b, 4) === b.length - 6;
   }
@@ -278,7 +298,7 @@
     opts = Object.assign({ mode: 'auto', dir: 'auto', ascii: false }, opts || {});
     const r = { mode: null, bytes, segments: [], issues: [], checksum: null, pdu: null, summary: '', ok: false, unit: null, fc: null };
     const issue = (level, msg) => r.issues.push({ level, msg });
-    const seg = (label, off, len, cls, text) => r.segments.push({ label, off, len, cls, text: text || '' });
+    const seg = (label, off, len, cls, text) => r.segments.push({ label, off, len, cls, text: text || '', copy: copyValues(label, text) });
     const n = bytes.length;
     if (!n) { issue('error', 'No bytes to analyse.'); return r; }
 
@@ -415,5 +435,5 @@
     return { bytes, hex: bytes.map(hex2).join(' '), text: text || null };
   }
 
-  PL.modbus = { crc16, lrc, analyze, buildFrame, decodePdu, FC_NAMES, EXC, modicon };
+  PL.modbus = { crc16, lrc, analyze, buildFrame, decodePdu, copyValues, FC_NAMES, EXC, modicon };
 })(typeof window !== 'undefined' ? window : globalThis);

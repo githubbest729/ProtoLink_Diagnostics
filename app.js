@@ -43,6 +43,22 @@
   }
   const copyBtn = (text, label) => el('button', { class: 'btn small', type: 'button', onclick: async () => { toast((await ED.copy(text)) ? 'Copied' : 'Copy failed — select and copy manually'); } }, label || 'Copy');
 
+  // One-click copy icon: copies a clean plain value (no labels/units) so it can be pasted straight into a tag dialog.
+  const SHORT = { offset: 'off', Modicon: '4x', unsigned: 'u16', signed: 'i16', hex: 'hex', value: '' };
+  function cpy(value, label, short) {
+    const icon = el('span', { 'aria-hidden': 'true', text: '⧉' });
+    const b = el('button', { class: 'cpy', type: 'button', 'aria-label': 'Copy ' + label, title: 'Copy ' + label + ': ' + value }, icon, short ? el('span', { class: 't', text: short }) : null);
+    b.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const ok = await ED.copy(String(value));
+      toast(ok ? 'Copied ' + value : 'Copy failed — select and copy manually');
+      if (ok) { b.classList.add('done'); icon.textContent = '✓'; setTimeout(() => { b.classList.remove('done'); icon.textContent = '⧉'; }, 1200); }
+    });
+    return b;
+  }
+  /** Table cell with a value and a copy icon. */
+  const mcell = (text, value, label, short) => el('td', { class: 'm' }, el('span', { text: String(text) }), cpy(value === undefined ? text : value, label || 'value', short));
+
   // ------------------------------------------------------------------ tabs
   const TABS = ['modbus', 'opc', 'logs', 'tools', 'history'];
   function showTab(id, updateHash) {
@@ -140,7 +156,7 @@
         el('td', { class: 'm', text: String(s.off) }),
         el('td', { class: 'm', text: res.bytes.slice(s.off, s.off + s.len).map(hex2).join(' ') }),
         el('td', { text: s.label }),
-        el('td', { text: s.text })));
+        el('td', null, el('span', { text: s.text }), (s.copy || []).map((c) => cpy(c[1], s.label + ' ' + c[0], s.copy.length > 1 ? SHORT[c[0]] : '')))));
     });
     fc.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
       el('thead', null, el('tr', null, ['Off', 'Bytes', 'Field', 'Decoded'].map((h) => el('th', { text: h })))), tb)));
@@ -151,8 +167,8 @@
       const rc = el('div', { class: 'card' }, el('h2', { text: 'Register values' }));
       const rb = el('tbody');
       regs.slice(0, 125).forEach((v, i) => rb.append(el('tr', null,
-        el('td', { class: 'm', text: '+' + i }), el('td', { class: 'm', text: '0x' + hex4(v) }),
-        el('td', { class: 'm', text: String(v) }), el('td', { class: 'm', text: String(v & 0x8000 ? v - 65536 : v) }),
+        el('td', { class: 'm', text: '+' + i }), mcell('0x' + hex4(v), '0x' + hex4(v), 'register ' + i + ' hex'),
+        mcell(v, String(v), 'register ' + i + ' unsigned'), mcell(v & 0x8000 ? v - 65536 : v, String(v & 0x8000 ? v - 65536 : v), 'register ' + i + ' signed'),
         el('td', { class: 'm', text: v.toString(2).padStart(16, '0').replace(/(.{4})/g, '$1 ').trim() }))));
       rc.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
         el('thead', null, el('tr', null, ['Reg', 'Hex', 'U16', 'I16', 'Binary'].map((h) => el('th', { text: h })))), rb)));
@@ -163,7 +179,7 @@
           const d = CV.decode32(regs[i], regs[i + 1]);
           Object.keys(d).forEach((k, j) => pb.append(el('tr', null,
             el('td', { class: 'm', text: j === 0 ? `+${i}, +${i + 1}` : '' }), el('td', { class: 'm', text: k }),
-            el('td', { class: 'm', text: String(d[k].u32) }), el('td', { class: 'm', text: String(d[k].i32) }), el('td', { class: 'm', text: d[k].f32 }))));
+            mcell(d[k].u32, String(d[k].u32), k + ' U32'), mcell(d[k].i32, String(d[k].i32), k + ' I32'), mcell(d[k].f32, d[k].f32, k + ' Float32'))));
         }
         rc.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
           el('thead', null, el('tr', null, ['Regs', 'Order', 'U32', 'I32', 'Float32'].map((h) => el('th', { text: h })))), pb)));
@@ -248,6 +264,20 @@
   const kbText = (k) => [k.title, k.symptom, k.proto, k.codes.join(' '), k.tags.join(' '), k.cats.join(' '), k.causes.join(' '), k.steps.join(' '), k.ww.join(' ')].join(' ').toLowerCase();
   const kbIndex = TP.opcKb.map((k) => ({ k, text: kbText(k) }));
 
+  function syncOpcToggle() {
+    const ds = $$('#opc-list details.kb'), b = $('#opc-toggle');
+    const all = ds.length > 0 && ds.every((d) => d.open);
+    b.textContent = all ? 'Collapse all' : 'Expand all';
+    b.setAttribute('aria-label', all ? 'Collapse all articles' : 'Expand all articles');
+    b.disabled = ds.length === 0;
+  }
+  $('#opc-toggle').addEventListener('click', () => {
+    const ds = $$('#opc-list details.kb'), open = !ds.every((d) => d.open);
+    ds.forEach((d) => { d.open = open; });
+    syncOpcToggle();
+  });
+  $('#opc-list').addEventListener('toggle', syncOpcToggle, true);
+
   function renderOpc(openId) {
     const q = $('#opc-search').value.trim().toLowerCase();
     const terms = q.split(/\s+/).filter(Boolean);
@@ -273,6 +303,7 @@
       if (k.ww.length) body.append(el('div', { class: 'wwbox' }, el('h3', { text: 'Wonderware / AVEVA notes' }), el('ul', null, k.ww.map((c) => el('li', { text: c })))));
       d.append(body); list.append(d);
     });
+    syncOpcToggle();
     if (openId) { const t = $('#kb-' + openId); if (t) t.scrollIntoView({ block: 'start' }); }
   }
   $('#opc-search').addEventListener('input', debounce(() => renderOpc(), 120));
@@ -425,7 +456,16 @@
   $('#log-custom').addEventListener('input', debounce(runLog, 400));
   $('#log-only').addEventListener('change', () => lg.lines.length && renderLogLines());
   $('#log-nums').addEventListener('change', () => lg.lines.length && renderLogLines());
-  $('#log-sample').addEventListener('click', () => { $('#log-input').value = TP.sampleLog; runLog(); });
+  TP.logPresets.forEach((p) => $('#log-preset').append(el('option', { value: p.id, text: p.label })));
+  $('#log-preset').addEventListener('change', (e) => {
+    const p = TP.logPresets.find((x) => x.id === e.target.value); if (!p) return;
+    $('#log-input').value = p.text; runLog(); e.target.value = '';
+    toast('Loaded sample: ' + p.label);
+  });
+  $('#log-save').addEventListener('click', () => {
+    const v = $('#log-input').value.trim(); if (!v) { toast('Nothing to save'); return; }
+    PL.db.add('notes', { text: v.slice(0, 50000), kind: 'log' }).then(() => toast('Log saved to the Saved tab')).catch(() => toast('Storage unavailable'));
+  });
   $('#log-clear').addEventListener('click', () => { $('#log-input').value = ''; runLog(); $('#log-input').focus(); });
   $('#log-file').addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0]; if (!f) return;
@@ -441,21 +481,21 @@
     const t = $(target); t.replaceChildren();
     if (err) { t.append(el('p', { class: 'err', text: '✖ ' + err })); return; }
     const dl = el('dl', { class: 'kv' });
-    rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', { text: r[1] })));
+    rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', null, el('span', { text: r[1] }), cpy(r[2] === undefined ? r[1] : r[2], r[0]))));
     t.append(dl);
   }
   $('#ad-input').addEventListener('input', debounce(() => {
     const s = $('#ad-input').value.trim(); if (!s) { $('#ad-out').replaceChildren(); return; }
     const r = CV.parseModicon(s);
     if (r.error) return kvOut('#ad-out', [], r.error);
-    kvOut('#ad-out', [['Table', r.name], ['Protocol offset', `${r.offset}  (${r.hex})`], ['Read FC', r.read], ['Write FC', r.write], ['Other format', (CV.toModicon(r.table, r.offset, r.digits === 5 ? 6 : 5).text || 'n/a')]]);
+    kvOut('#ad-out', [['Table', r.name], ['Protocol offset (dec)', String(r.offset)], ['Protocol offset (hex)', r.hex], ['Read FC', r.read], ['Write FC', r.write], ['Other format', (CV.toModicon(r.table, r.offset, r.digits === 5 ? 6 : 5).text || 'n/a')]]);
   }, 120));
   const ad2 = debounce(() => {
     const s = $('#ad2-offset').value.trim(); if (!s) { $('#ad2-out').replaceChildren(); return; }
     const off = CV.num(s);
     const r = CV.toModicon(Number($('#ad2-table').value), off, Number($('#ad2-digits').value));
     if (r.error) return kvOut('#ad2-out', [], r.error);
-    kvOut('#ad2-out', [['Modicon', r.text], ['Offset', `${off} (0x${hex4(off)})`]]);
+    kvOut('#ad2-out', [['Modicon', r.text], ['Offset (dec)', String(off)], ['Offset (hex)', '0x' + hex4(off)]]);
   }, 120);
   ['#ad2-offset', '#ad2-table', '#ad2-digits'].forEach((id) => { $(id).addEventListener('input', ad2); $(id).addEventListener('change', ad2); });
 
@@ -464,7 +504,7 @@
     const p = ED.parseInput(s);
     if (p.error) return kvOut('#ck-out', [], p.error);
     const c = MB.crc16(p.bytes), l = MB.lrc(p.bytes);
-    kvOut('#ck-out', [['Bytes', String(p.bytes.length)], ['CRC-16', `0x${hex4(c)}  → on wire: ${hex2(c & 0xff)} ${hex2(c >> 8)} (low first)`], ['RTU frame', ED.formatHex(p.bytes.concat([c & 0xff, c >> 8]))], ['LRC', `0x${hex2(l)}`], ['ASCII frame', ':' + ED.formatHex(p.bytes.concat([l]), '')]]);
+    kvOut('#ck-out', [['Bytes', String(p.bytes.length)], ['CRC-16', `0x${hex4(c)}  → on wire: ${hex2(c & 0xff)} ${hex2(c >> 8)} (low first)`, '0x' + hex4(c)], ['CRC bytes (lo hi)', hex2(c & 0xff) + ' ' + hex2(c >> 8)], ['RTU frame', ED.formatHex(p.bytes.concat([c & 0xff, c >> 8]))], ['LRC', `0x${hex2(l)}`], ['ASCII frame', ':' + ED.formatHex(p.bytes.concat([l]), '')]]);
   }, 120));
 
   function sc() {
@@ -489,8 +529,8 @@
     $('#en-to').value = 'CDAB';
     const rowsOf = (d, w) => EN.map((e) => el('tr', null,
       el('td', null, el('b', { text: d[e.key].label }), el('div', { class: 'muted', text: e.name + ' · ' + e.note })),
-      el('td', { class: 'm', text: d[e.key].canon }), el('td', { class: 'm', text: d[e.key].f }),
-      el('td', { class: 'm', text: d[e.key].i }), el('td', { class: 'm', text: d[e.key].u })));
+      mcell(d[e.key].canon, d[e.key].canon, e.key + ' bytes'), mcell(d[e.key].f, d[e.key].f, e.key + ' float'),
+      mcell(d[e.key].i, d[e.key].i, e.key + ' signed integer'), mcell(d[e.key].u, d[e.key].u, e.key + ' unsigned integer')));
     function run() {
       const out = $('#en-out'), conv = $('#en-conv'), enc = $('#en-enc');
       out.replaceChildren(); conv.replaceChildren(); enc.replaceChildren();
@@ -510,7 +550,7 @@
           conv.append(el('dl', { class: 'kv' },
             el('dt', { text: 'Bytes' }), el('dd', { text: ED.formatHex(cb) }),
             el('dt', { text: 'Registers' }), el('dd', { text: CV.wordsText(cb) })),
-          copyBtn(ED.formatHex(cb), 'Copy bytes'));
+          copyBtn(ED.formatHex(cb), 'Copy bytes'), ' ', copyBtn(CV.wordsText(cb), 'Copy registers'));
         }
       }
       const v = $('#en-val').value.trim();
@@ -519,7 +559,7 @@
         if (e.error) enc.append(el('p', { class: 'err', text: '✖ ' + e.error }));
         else enc.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
           el('thead', null, el('tr', null, ['Layout', 'Bytes to send', 'Registers'].map((h) => el('th', { text: h })))),
-          el('tbody', null, EN.map((o) => el('tr', null, el('td', null, el('b', { text: e[o.key].label }), el('div', { class: 'muted', text: o.name + ' · ' + o.note })), el('td', { class: 'm', text: e[o.key].hex }), el('td', { class: 'm', text: e[o.key].words })))))));
+          el('tbody', null, EN.map((o) => el('tr', null, el('td', null, el('b', { text: e[o.key].label }), el('div', { class: 'muted', text: o.name + ' · ' + o.note })), mcell(e[o.key].hex, e[o.key].hex, o.key + ' bytes'), mcell(e[o.key].words, e[o.key].words, o.key + ' registers')))))));
       }
     }
     const runSoon = debounce(run, 120);
@@ -622,8 +662,9 @@
     const sup = S.support();
     const warn = $('#ser-warn');
     const st = { sess: null, framer: null, timer: null, paused: false, frames: [], count: 0, bytes: 0, ok: 0, bad: 0, raw: [], gap: 0, cfg: '', pending: false };
-    if (!sup.ok) { warn.textContent = '⚠ ' + sup.reason; warn.hidden = false; $('#ser-connect').disabled = true; }
+    if (!sup.ok) { warn.textContent = '⚠ ' + sup.reason; warn.hidden = false; $('#ser-connect').disabled = true; $('#ser-led').className = 'led err'; $('#ser-dock').classList.add('err'); }
     const ctl = (connected) => {
+      $('#ser-dock').classList.toggle('live', connected);
       $('#ser-connect').disabled = connected || !sup.ok;
       ['#ser-disconnect', '#ser-pause', '#ser-send'].forEach((id) => { $(id).disabled = !connected; });
       ['#ser-baud', '#ser-parity', '#ser-stop', '#ser-gap'].forEach((id) => { $(id).disabled = connected; });
@@ -631,7 +672,9 @@
     const setStatus = (t) => { $('#ser-status').textContent = t; };
     const stamp = (ms) => { const d = new Date(ms); return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0'); };
     function status() {
-      setStatus((st.sess ? 'Connected ' + st.cfg + ' · gap ' + st.gap.toFixed(1) + ' ms' + (st.paused ? ' · PAUSED' : '') : 'Not connected') + ' · ' + st.bytes + ' bytes · ' + st.count + ' frames (' + st.ok + ' CRC ok, ' + st.bad + ' bad)');
+      $('#ser-led').className = 'led ' + (st.sess ? (st.paused ? 'paused' : 'on') : 'off');
+      $('#ser-dock').classList.toggle('paused', !!st.sess && st.paused);
+      setStatus((st.sess ? 'Connected ' + st.cfg + (st.port || '') + ' · gap ' + st.gap.toFixed(1) + ' ms' + (st.paused ? ' · PAUSED' : '') : 'Not connected') + ' · ' + st.bytes + ' bytes · ' + st.count + ' frames (' + st.ok + ' CRC ok, ' + st.bad + ' bad)');
     }
     function render() {
       st.pending = false;
@@ -690,9 +733,12 @@
       try { await st.sess.connect(cfg); }
       catch (e) {
         st.sess = null;
+        $('#ser-led').className = 'led ' + (e && e.name === 'NotFoundError' ? 'off' : 'err');
         setStatus(e && e.name === 'NotFoundError' ? 'No port selected.' : '✖ Could not open port: ' + (e && e.message ? e.message : e) + ' (is another program using it?)');
         return;
       }
+      try { const inf = st.sess.port && st.sess.port.getInfo ? st.sess.port.getInfo() : null; st.port = inf && inf.usbVendorId !== undefined ? ' · USB ' + hex4(inf.usbVendorId) + ':' + hex4(inf.usbProductId || 0) : ''; } catch (e) { st.port = ''; }
+      $('#ser-card').open = true;
       st.paused = false; $('#ser-pause').textContent = 'Pause';
       ctl(true); status();
       st.timer = setInterval(() => st.framer.tick(performance.now()), Math.max(2, Math.min(20, st.gap / 2)));
@@ -700,6 +746,13 @@
     $('#ser-disconnect').addEventListener('click', () => { if (st.sess) st.sess.disconnect(); });
     $('#ser-pause').addEventListener('click', () => { st.paused = !st.paused; $('#ser-pause').textContent = st.paused ? 'Resume' : 'Pause'; status(); });
     $('#ser-clear').addEventListener('click', () => { st.frames = []; st.count = st.bytes = st.ok = st.bad = 0; st.raw = []; $('#ser-rawbox').textContent = ''; render(); });
+    $('#ser-save').addEventListener('click', async () => {
+      if (!st.frames.length) { toast('No captured frames to save'); return; }
+      try {
+        for (const f of st.frames) await PL.db.add('frames', { hex: ED.formatHex(f.bytes), mode: 'rtu', ts: Math.round(f.t), summary: 'Sniffed frame #' + f.n + ' · ' + f.bytes.length + ' bytes · CRC ' + (f.crc === null ? 'n/a' : f.crc ? 'OK' : 'BAD') });
+        toast('Saved ' + st.frames.length + ' frame(s) to the Saved tab');
+      } catch (e) { toast('Storage unavailable'); }
+    });
     $('#ser-send').addEventListener('click', async () => {
       const p = ED.parseInput($('#ser-tx').value);
       if (p.error) { toast(p.error); return; }
@@ -772,7 +825,7 @@
     }).catch(() => $('#hist-frames').replaceChildren(el('p', { class: 'err', text: 'Storage unavailable in this browser mode.' })));
     PL.db.list('notes').then((rows) => {
       const t = $('#hist-notes'); t.replaceChildren();
-      rows.forEach((r) => t.append(el('div', { class: 'card' }, el('div', { class: 'muted', text: fmtDate(r.ts) }), el('p', { text: r.text }),
+      rows.forEach((r) => t.append(el('div', { class: 'card' }, el('div', { class: 'muted', text: fmtDate(r.ts) + (r.kind === 'log' ? ' · LOG SNIPPET' : '') }), r.kind === 'log' ? el('pre', { class: 'logbox rawbox', text: r.text }) : el('p', { text: r.text }),
         el('button', { class: 'btn small danger', type: 'button', onclick: () => PL.db.remove('notes', r.id).then(renderHistory) }, 'Delete'))));
     }).catch(() => { /* already reported */ });
   }
@@ -780,6 +833,23 @@
     const v = $('#note-input').value.trim(); if (!v) return;
     PL.db.add('notes', { text: v }).then(() => { $('#note-input').value = ''; toast('Note saved'); renderHistory(); }).catch(() => toast('Storage unavailable'));
   });
+  function downloadText(name, text, mime) {
+    const url = URL.createObjectURL(new Blob([text], { type: mime }));
+    const a = el('a', { href: url, download: name }); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+  const stampName = () => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()); };
+  async function exportText(kind) {
+    try {
+      const frames = await PL.db.list('frames'), notes = await PL.db.list('notes');
+      if (!frames.length && !notes.length) { toast('Nothing saved yet'); return; }
+      if (kind === 'csv') downloadText('protolink-saved-' + stampName() + '.csv', PL.exporter.toCsv(frames, notes), 'text/csv;charset=utf-8');
+      else downloadText('protolink-saved-' + stampName() + '.txt', PL.exporter.toTxt(frames, notes, 'ProtoLink Diagnostics — saved frames, notes and logs'), 'text/plain;charset=utf-8');
+      toast('Downloaded ' + (frames.length + notes.length) + ' item(s)');
+    } catch (e) { toast('Export failed'); }
+  }
+  $('#hist-csv').addEventListener('click', () => exportText('csv'));
+  $('#hist-txt').addEventListener('click', () => exportText('txt'));
   $('#hist-export').addEventListener('click', async () => {
     try {
       const data = { exported: new Date().toISOString(), app: 'ProtoLink Diagnostics', frames: await PL.db.list('frames'), notes: await PL.db.list('notes') };
@@ -792,6 +862,34 @@
     if (!window.confirm('Delete all saved frames and notes on this device?')) return;
     try { await PL.db.clear('frames'); await PL.db.clear('notes'); toast('Deleted'); renderHistory(); } catch (e) { toast('Failed'); }
   });
+
+  // ------------------------------------------------------------------ Tools accordions (state remembered)
+  (function () {
+    const cards = $$('details.tool'), btn = $('#tools-toggle');
+    const saved = lsGet('pl.tools', null);
+    cards.forEach((d, i) => { d.open = saved ? !!saved[d.dataset.tool] : i === 0; });
+    const sync = () => { const all = cards.every((d) => d.open); btn.textContent = all ? 'Collapse all' : 'Expand all'; };
+    cards.forEach((d) => d.addEventListener('toggle', () => { const m = {}; cards.forEach((x) => { m[x.dataset.tool] = x.open; }); lsSet('pl.tools', m); sync(); }));
+    btn.addEventListener('click', () => { const open = !cards.every((d) => d.open); cards.forEach((d) => { d.open = open; }); sync(); });
+    sync();
+  })();
+
+  // ------------------------------------------------------------------ sticky offsets (serial dock sits under the sticky header/tabs)
+  function updateStickyOffsets() {
+    const tb = $('.topbar').offsetHeight, tabs = $('.tabs');
+    const tabsSticky = getComputedStyle(tabs).position === 'sticky' ? tabs.offsetHeight : 0;
+    document.documentElement.style.setProperty('--topbar-h', tb + 'px');
+    document.documentElement.style.setProperty('--dock-top', (tb + tabsSticky + 6) + 'px');
+    // keep auto-scrolled / anchored elements clear of the sticky bars (dock only matters on the Modbus tab)
+    const dock = $('#ser-dock'), dockVisible = dock && dock.offsetParent !== null;
+    const bottomTabs = tabsSticky ? 0 : tabs.offsetHeight;
+    document.documentElement.style.scrollPaddingTop = (tb + tabsSticky + (dockVisible ? dock.offsetHeight + 12 : 8)) + 'px';
+    document.documentElement.style.scrollPaddingBottom = (bottomTabs + 12) + 'px';
+  }
+  window.addEventListener('resize', debounce(updateStickyOffsets, 100));
+  updateStickyOffsets();
+  if (window.ResizeObserver) { const ro = new ResizeObserver(updateStickyOffsets); ro.observe($('.topbar')); if ($('#ser-dock')) ro.observe($('#ser-dock')); }
+  window.addEventListener('hashchange', updateStickyOffsets);
 
   // ------------------------------------------------------------------ init
   renderOpc();

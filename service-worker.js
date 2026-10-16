@@ -4,7 +4,7 @@
  */
 'use strict';
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const BUILD = '__BUILD__';
 const CACHE = `protolink-v${VERSION}-${BUILD}`;
 
@@ -28,6 +28,7 @@ const PRECACHE = [
   'js/instrument.js',
   'js/subnet.js',
   'js/tag-helper.js',
+  'js/export.js',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-192.png',

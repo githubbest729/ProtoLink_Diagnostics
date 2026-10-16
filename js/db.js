@@ -49,7 +49,7 @@
   }
 
   async function add(store, obj) {
-    const rec = Object.assign({}, obj, { ts: Date.now() });
+    const rec = Object.assign({}, obj, { ts: obj.ts || Date.now() }); // callers may supply the original capture time
     const db = await open();
     if (db) return idb(db, store, 'readwrite', (s) => s.add(rec));
     const arr = lsRead(store);
