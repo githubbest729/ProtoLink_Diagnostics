@@ -236,7 +236,7 @@
   });
 
   // ------------------------------------------------------------------ OPC knowledge base
-  const OPC_FILTERS = ['All', 'DCOM', 'Quality', 'Timeout', 'Network', 'Modbus', 'OPC-DA', 'UA', 'Wonderware', 'Config'];
+  const OPC_FILTERS = ['All', 'DCOM', 'Quality', 'Timeout', 'Network', 'Modbus', 'OPC-DA', 'UA', 'Wonderware', 'iFIX', 'Config'];
   const opc = { filter: 'All' };
   OPC_FILTERS.forEach((f) => $('#opc-chips').append(el('button', { class: 'fchip', type: 'button', 'aria-pressed': f === 'All' ? 'true' : 'false', 'data-f': f, text: f === 'UA' ? 'OPC UA' : f === 'OPC-DA' ? 'OPC DA' : f })));
   $('#opc-chips').addEventListener('click', (e) => {
@@ -258,10 +258,13 @@
       return terms.every((t) => text.includes(t));
     }).map((x) => x.k);
     $('#opc-count').textContent = hits.length + ' of ' + TP.opcKb.length + ' articles';
+    const note = $('#opc-note');
+    note.hidden = opc.filter !== 'iFIX';
+    note.textContent = 'iFIX steps are field checklists: menu names, file locations and network ports differ between iFIX / Proficy versions — confirm in the product documentation for the version on site.';
     if (!hits.length) list.append(el('div', { class: 'card' }, el('p', { text: 'No matches. Try a shorter term, an error code such as 0x80070005, or clear the filter.' })));
     hits.forEach((k) => {
       const d = el('details', { class: 'kb', id: 'kb-' + k.id, open: openId === k.id || (terms.length > 0 && hits.length <= 2) });
-      d.append(el('summary', null, el('b', { text: k.title }), el('span', { class: 'tag', text: k.proto === 'Both' ? 'DA+UA' : 'OPC ' + k.proto }), k.ww.length ? el('span', { class: 'tag ww', text: 'Wonderware' }) : null));
+      d.append(el('summary', null, el('b', { text: k.title }), el('span', { class: 'tag', text: { Both: 'DA+UA', DA: 'OPC DA', UA: 'OPC UA', iFIX: 'GE iFIX' }[k.proto] || k.proto }), k.ww.length ? el('span', { class: 'tag ww', text: 'Wonderware' }) : null));
       const body = el('div', { class: 'kbbody' });
       if (k.codes.length) body.append(el('div', { class: 'chips' }, k.codes.map((c) => el('span', { class: 'tag code', text: c }))));
       body.append(el('h3', { text: 'Symptom' }), el('p', { text: k.symptom }));
@@ -456,31 +459,6 @@
   }, 120);
   ['#ad2-offset', '#ad2-table', '#ad2-digits'].forEach((id) => { $(id).addEventListener('input', ad2); $(id).addEventListener('change', ad2); });
 
-  function w32() {
-    const a = CV.num($('#w32-a').value), b = CV.num($('#w32-b').value);
-    const t = $('#w32-out'); t.replaceChildren();
-    if (!$('#w32-a').value.trim() && !$('#w32-b').value.trim()) return;
-    const ok = (v) => Number.isInteger(v) && v >= -32768 && v <= 65535;
-    if (!ok(a) || !ok(b)) { t.append(el('p', { class: 'err', text: '✖ Enter both registers as integers (decimal or 0x hex, 0–65535).' })); return; }
-    const d = CV.decode32(a & 0xffff, b & 0xffff);
-    const tb = el('tbody');
-    Object.keys(d).forEach((k) => tb.append(el('tr', null, el('td', { class: 'm', text: k }), el('td', { class: 'm', text: d[k].bytes }), el('td', { class: 'm', text: String(d[k].u32) }), el('td', { class: 'm', text: String(d[k].i32) }), el('td', { class: 'm', text: d[k].f32 }))));
-    t.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' }, el('thead', null, el('tr', null, ['Order', 'Bytes', 'U32', 'I32', 'Float32'].map((h) => el('th', { text: h })))), tb)));
-  }
-  ['#w32-a', '#w32-b'].forEach((id) => $(id).addEventListener('input', debounce(w32, 120)));
-  function enc() {
-    const t = $('#enc-out'); t.replaceChildren();
-    const s = $('#enc-val').value.trim(); if (!s) return;
-    const v = CV.num(s);
-    if (Number.isNaN(v)) { t.append(el('p', { class: 'err', text: '✖ Not a number.' })); return; }
-    const type = $('#enc-type').value;
-    if (type !== 'f32' && !Number.isInteger(v)) { t.append(el('p', { class: 'err', text: '✖ Integer types need a whole number.' })); return; }
-    const r = CV.encode32(v, type);
-    if (r.error) { t.append(el('p', { class: 'err', text: '✖ ' + r.error })); return; }
-    kvOut('#enc-out', Object.keys(r).map((k) => [k, r[k].text]));
-  }
-  $('#enc-val').addEventListener('input', debounce(enc, 120)); $('#enc-type').addEventListener('change', enc);
-
   $('#ck-input').addEventListener('input', debounce(() => {
     const s = $('#ck-input').value; if (!s.trim()) { $('#ck-out').replaceChildren(); return; }
     const p = ED.parseInput(s);
@@ -503,6 +481,280 @@
     sc();
   }));
   sc();
+
+  // ------------------------------------------------------------------ Endianness & word swapper
+  (function () {
+    const EN = CV.ENDIAN;
+    EN.forEach((e) => ['#en-from', '#en-to'].forEach((id) => $(id).append(el('option', { value: e.key, text: e.key + ' — ' + e.name }))));
+    $('#en-to').value = 'CDAB';
+    const rowsOf = (d, w) => EN.map((e) => el('tr', null,
+      el('td', null, el('b', { text: d[e.key].label }), el('div', { class: 'muted', text: e.name + ' · ' + e.note })),
+      el('td', { class: 'm', text: d[e.key].canon }), el('td', { class: 'm', text: d[e.key].f }),
+      el('td', { class: 'm', text: d[e.key].i }), el('td', { class: 'm', text: d[e.key].u })));
+    function run() {
+      const out = $('#en-out'), conv = $('#en-conv'), enc = $('#en-enc');
+      out.replaceChildren(); conv.replaceChildren(); enc.replaceChildren();
+      const w = Number($('#en-width').value), mode = $('#en-mode').value;
+      $('#en-in').placeholder = mode === 'regs' ? (w === 32 ? '0x4048 0xF5C3' : '0x4009 0x1EB8 0x51EB 0x851F') : (w === 32 ? '40 48 F5 C3' : '40 09 1E B8 51 EB 85 1F');
+      if ($('#en-in').value.trim()) {
+        const r = CV.parseRaw($('#en-in').value, mode, w);
+        if (r.error) out.append(el('p', { class: 'err', text: '✖ ' + r.error }));
+        else {
+          const d = CV.decodeAll(r.bytes);
+          out.append(el('p', { class: 'hint', text: 'Received bytes: ' + ED.formatHex(r.bytes) + '  ·  pick the row with a plausible value.' }),
+            el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
+              el('thead', null, el('tr', null, ['Layout', 'Value bytes (big-endian)', 'Float' + w, 'Int' + w, 'UInt' + w].map((h) => el('th', { text: h })))),
+              el('tbody', null, rowsOf(d, w)))));
+          const from = $('#en-from').value, to = $('#en-to').value;
+          const cb = CV.convertOrder(r.bytes, from, to);
+          conv.append(el('dl', { class: 'kv' },
+            el('dt', { text: 'Bytes' }), el('dd', { text: ED.formatHex(cb) }),
+            el('dt', { text: 'Registers' }), el('dd', { text: CV.wordsText(cb) })),
+          copyBtn(ED.formatHex(cb), 'Copy bytes'));
+        }
+      }
+      const v = $('#en-val').value.trim();
+      if (v) {
+        const e = CV.encodeValue(v, $('#en-type').value, w);
+        if (e.error) enc.append(el('p', { class: 'err', text: '✖ ' + e.error }));
+        else enc.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
+          el('thead', null, el('tr', null, ['Layout', 'Bytes to send', 'Registers'].map((h) => el('th', { text: h })))),
+          el('tbody', null, EN.map((o) => el('tr', null, el('td', null, el('b', { text: e[o.key].label }), el('div', { class: 'muted', text: o.name + ' · ' + o.note })), el('td', { class: 'm', text: e[o.key].hex }), el('td', { class: 'm', text: e[o.key].words })))))));
+      }
+    }
+    const runSoon = debounce(run, 120);
+    ['#en-in', '#en-val'].forEach((id) => $(id).addEventListener('input', runSoon));
+    ['#en-width', '#en-mode', '#en-from', '#en-to', '#en-type'].forEach((id) => $(id).addEventListener('change', run));
+    run();
+  })();
+
+  // ------------------------------------------------------------------ 4–20 mA loop + Ohm's law
+  (function () {
+    const LP = PL.instrument;
+    const rnd = (v, d) => String(Number(Number(v).toFixed(d)));
+    const opts = () => ({ mode: $('#lp-mode').value, euLo: CV.num($('#lp-eulo').value), euHi: CV.num($('#lp-euhi').value) });
+    function lp(src) {
+      const o = opts(), out = $('#lp-out');
+      $('#lp-unit-lbl').textContent = $('#lp-unit').value || 'EU';
+      out.replaceChildren();
+      if (Number.isNaN(o.euLo) || Number.isNaN(o.euHi) || o.euLo === o.euHi) { out.append(el('p', { class: 'err', text: '✖ Enter two different numbers for the process range.' })); return; }
+      let mA;
+      if (src === 'eu') mA = LP.euToLoop(CV.num($('#lp-eu').value), o);
+      else if (src === 'slider') mA = Number($('#lp-slider').value);
+      else mA = CV.num($('#lp-ma').value);
+      if (!Number.isFinite(mA) || mA < 0 || mA > 40) { out.append(el('p', { class: 'err', text: '✖ Enter a loop current of 0–40 mA (or a process value that maps into it).' })); return; }
+      if (src !== 'ma') $('#lp-ma').value = rnd(mA, 3);
+      if (src !== 'slider') $('#lp-slider').value = String(Math.min(24, mA));
+      if (src !== 'eu') $('#lp-eu').value = rnd(LP.loopToEU(mA, o), 4);
+      const st = LP.loopStatus(mA, o.mode), pct = LP.pctOfSpan(mA, o.mode);
+      const rows = [['Span', rnd(pct, 2) + ' %'], ['Process value', rnd(LP.loopToEU(mA, o), 4) + ' ' + ($('#lp-unit').value || '')],
+        ['S7 raw (module 4–20 mA)', String(LP.siemensRaw(mA, '4-20')) + '  (nominal 0…27648)'], ['S7 raw (module 0–20 mA)', String(LP.siemensRaw(mA, '0-20'))]];
+      const dl = el('dl', { class: 'kv' }); rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', { text: r[1] })));
+      out.append(dl, el('div', { class: 'verdict ' + (st.level === 'good' ? 'good' : st.level === 'warn' ? 'warn' : 'bad') }, el('span', { text: st.text })));
+      ohm('ma-sync');
+    }
+    function ohm(src) {
+      const R = CV.num($('#oh-r').value), out = $('#oh-out');
+      out.replaceChildren();
+      if (!(R > 0)) { out.append(el('p', { class: 'err', text: '✖ Resistor value must be a positive number of ohms.' })); return; }
+      let mA;
+      if (src === 'v') { const V = CV.num($('#oh-v').value); if (Number.isNaN(V)) { out.append(el('p', { class: 'err', text: '✖ Voltage is not a number.' })); return; } mA = LP.current(V, R); $('#oh-ma').value = rnd(mA, 3); }
+      else { mA = CV.num($('#oh-ma').value); if (Number.isNaN(mA)) { out.append(el('p', { class: 'err', text: '✖ Current is not a number.' })); return; } $('#oh-v').value = rnd(LP.voltage(mA, R), 4); }
+      const mode = $('#lp-mode').value;
+      out.append(el('p', null, el('b', { text: rnd(mA, 3) + ' mA' }), ' across ', el('b', { text: rnd(R, 2) + ' Ω' }), ' = ', el('b', { text: rnd(LP.voltage(mA, R), 4) + ' V' })),
+        el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' }, el('thead', null, el('tr', null, ['mA', '% span', 'Volts'].map((h) => el('th', { text: h })))),
+          el('tbody', null, LP.dropTable(R, mode).map((r) => el('tr', null, el('td', { class: 'm', text: rnd(r.mA, 2) }), el('td', { class: 'm', text: rnd(r.pct, 1) }), el('td', { class: 'm', text: rnd(r.volts, 4) })))))),
+        el('p', { class: 'hint', text: 'Measure with the meter across the resistor (loop powered, transmitter connected). Compare with the PLC’s scaled value.' }));
+    }
+    const lpSoon = { ma: debounce(() => lp('ma'), 80), eu: debounce(() => lp('eu'), 80), cfg: debounce(() => lp('ma'), 80) };
+    $('#lp-ma').addEventListener('input', lpSoon.ma);
+    $('#lp-eu').addEventListener('input', lpSoon.eu);
+    $('#lp-slider').addEventListener('input', () => lp('slider'));
+    ['#lp-eulo', '#lp-euhi', '#lp-unit'].forEach((id) => $(id).addEventListener('input', lpSoon.cfg));
+    $('#lp-mode').addEventListener('change', () => lp('ma'));
+    $$('[data-lp]').forEach((b) => b.addEventListener('click', () => { const p = b.dataset.lp.split(','); $('#lp-eulo').value = p[0]; $('#lp-euhi').value = p[1]; $('#lp-unit').value = p[2]; lp('ma'); }));
+    $$('[data-ohm]').forEach((b) => b.addEventListener('click', () => { $('#oh-r').value = b.dataset.ohm; ohm('ma'); }));
+    $('#oh-ma').addEventListener('input', debounce(() => ohm('ma'), 80));
+    $('#oh-r').addEventListener('input', debounce(() => ohm('ma'), 80));
+    $('#oh-v').addEventListener('input', debounce(() => ohm('v'), 80));
+    $('#oh-use').addEventListener('click', () => { $('#oh-ma').value = $('#lp-ma').value; ohm('ma'); });
+    lp('ma');
+  })();
+
+  // ------------------------------------------------------------------ Subnet planner
+  (function () {
+    const SN = PL.subnet;
+    function run() {
+      const out = $('#sn-out'), extra = $('#sn-extra');
+      out.replaceChildren(); extra.replaceChildren();
+      const s = $('#sn-in').value.trim();
+      if (!s) return;
+      const p = SN.parse(s);
+      if (p.error) { kvOut('#sn-out', [], p.error); return; }
+      const c = SN.calc(p.ip, p.prefix);
+      const rows = [['Address', SN.ipToStr(c.ip) + ' /' + c.prefix], ['Subnet mask', c.maskStr], ['Wildcard mask', c.wildcardStr], ['Network ID', c.networkStr],
+        ['Broadcast', c.prefix >= 31 ? (c.prefix === 31 ? c.broadcastStr + ' (not used — /31)' : 'n/a (/32)') : c.broadcastStr],
+        ['Usable range', c.firstStr + '  →  ' + c.lastStr], ['Usable hosts', c.usable.toLocaleString() + ' (of ' + c.total.toLocaleString() + ' addresses)'],
+        ['Common gateway', c.prefix <= 30 ? c.firstStr + ' (convention: first usable — use what your network defines)' : 'n/a'], ['Mask (binary)', c.maskBin], ['Type', c.kind]];
+      kvOut('#sn-out', rows);
+      if (c.note) $('#sn-out').append(el('p', { class: 'hint', text: c.note }));
+      const chk = $('#sn-chk').value.trim();
+      if (chk) {
+        const ip = SN.parseIPv4(chk);
+        extra.append(ip === null ? el('p', { class: 'err', text: '✖ "' + chk + '" is not a valid IPv4 address.' })
+          : el('p', { class: SN.contains(c, ip) ? 'ok' : 'err', text: (SN.contains(c, ip) ? '✔ ' : '✖ ') + chk + (SN.contains(c, ip) ? ' is inside ' : ' is NOT inside ') + c.networkStr + '/' + c.prefix + (SN.contains(c, ip) && (ip === c.network || ip === c.broadcast) && c.prefix < 31 ? ' (but it is the ' + (ip === c.network ? 'network' : 'broadcast') + ' address — not assignable)' : '') }));
+      }
+      const sp = $('#sn-split').value.trim();
+      if (sp) {
+        const r = SN.split(c, Number(sp), 64);
+        if (r.error) extra.append(el('p', { class: 'err', text: '✖ ' + r.error }));
+        else extra.append(el('p', { class: 'hint', text: r.count + ' subnets of /' + sp + (r.truncated ? ' (first 64 shown)' : '') }),
+          el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' }, el('thead', null, el('tr', null, ['Network', 'Usable range', 'Broadcast'].map((h) => el('th', { text: h })))),
+            el('tbody', null, r.list.map((x) => el('tr', null, el('td', { class: 'm', text: x.networkStr + '/' + x.prefix }), el('td', { class: 'm', text: x.firstStr + ' – ' + x.lastStr }), el('td', { class: 'm', text: x.broadcastStr })))))));
+      }
+    }
+    ['#sn-in', '#sn-chk', '#sn-split'].forEach((id) => $(id).addEventListener('input', debounce(run, 120)));
+  })();
+
+  // ------------------------------------------------------------------ Live serial sniffer (Web Serial)
+  (function () {
+    const S = PL.serial, MBX = PL.modbus;
+    const sup = S.support();
+    const warn = $('#ser-warn');
+    const st = { sess: null, framer: null, timer: null, paused: false, frames: [], count: 0, bytes: 0, ok: 0, bad: 0, raw: [], gap: 0, cfg: '', pending: false };
+    if (!sup.ok) { warn.textContent = '⚠ ' + sup.reason; warn.hidden = false; $('#ser-connect').disabled = true; }
+    const ctl = (connected) => {
+      $('#ser-connect').disabled = connected || !sup.ok;
+      ['#ser-disconnect', '#ser-pause', '#ser-send'].forEach((id) => { $(id).disabled = !connected; });
+      ['#ser-baud', '#ser-parity', '#ser-stop', '#ser-gap'].forEach((id) => { $(id).disabled = connected; });
+    };
+    const setStatus = (t) => { $('#ser-status').textContent = t; };
+    const stamp = (ms) => { const d = new Date(ms); return d.toTimeString().slice(0, 8) + '.' + String(d.getMilliseconds()).padStart(3, '0'); };
+    function status() {
+      setStatus((st.sess ? 'Connected ' + st.cfg + ' · gap ' + st.gap.toFixed(1) + ' ms' + (st.paused ? ' · PAUSED' : '') : 'Not connected') + ' · ' + st.bytes + ' bytes · ' + st.count + ' frames (' + st.ok + ' CRC ok, ' + st.bad + ' bad)');
+    }
+    function render() {
+      st.pending = false;
+      const tb = $('#ser-body'); tb.replaceChildren();
+      $('#ser-table').hidden = st.frames.length === 0;
+      st.frames.slice(-100).reverse().forEach((f) => {
+        const hex = ED.formatHex(f.bytes.slice(0, 48)) + (f.bytes.length > 48 ? ' …' : '');
+        tb.append(el('tr', { class: f.crc === false ? 'badcrc' : null },
+          el('td', { class: 'm', text: String(f.n) }), el('td', { class: 'm', text: stamp(f.t) }), el('td', { class: 'm', text: String(f.bytes.length) }),
+          el('td', null, el('span', { class: 'badge ' + (f.crc === null ? 'na' : f.crc ? 'ok' : 'bad'), text: f.crc === null ? 'n/a' : f.crc ? 'OK' : 'BAD' })),
+          el('td', { class: 'frame', text: hex }),
+          el('td', null, el('button', { class: 'btn small', type: 'button', onclick: () => loadFrame(f, true) }, 'Analyze'), ' ', copyBtn(ED.formatHex(f.bytes), 'Copy'))));
+      });
+      status();
+    }
+    const later = () => { if (!st.pending) { st.pending = true; requestAnimationFrame(render); } };
+    function loadFrame(f, scroll) {
+      $('#mb-input').value = ED.formatHex(f.bytes);
+      $('#mb-mode').value = 'rtu';
+      runAnalysis();
+      if (scroll) $('#mb-out').scrollIntoView({ block: 'start' });
+    }
+    function onFrame(bytes, start) {
+      const n = bytes.length;
+      const crc = n >= 4 ? MBX.crc16(bytes, 0, n - 2) === (bytes[n - 2] | (bytes[n - 1] << 8)) : null;
+      if (crc === true) st.ok++; else if (crc === false) st.bad++;
+      const f = { n: ++st.count, t: Date.now() - (performance.now() - start), bytes, crc };
+      st.frames.push(f); if (st.frames.length > 300) st.frames.shift();
+      if ($('#ser-auto').checked) loadFrame(f, false);
+      later();
+    }
+    function onBytes(v, now) {
+      if (st.paused) return;
+      st.bytes += v.length;
+      st.framer.push(Array.from(v), now);
+      if ($('#ser-raw').checked) {
+        st.raw.push(ED.formatHex(Array.from(v)));
+        if (st.raw.length > 400) st.raw.splice(0, st.raw.length - 400);
+        $('#ser-rawbox').textContent = st.raw.join(' ');
+        $('#ser-rawbox').scrollTop = 1e9;
+      }
+      later();
+    }
+    $('#ser-raw').addEventListener('change', () => { $('#ser-rawbox').hidden = !$('#ser-raw').checked; });
+    $('#ser-connect').addEventListener('click', async () => {
+      const cfg = { baudRate: Number($('#ser-baud').value), parity: $('#ser-parity').value, stopBits: Number($('#ser-stop').value) };
+      const gapIn = CV.num($('#ser-gap').value);
+      st.gap = Number.isFinite(gapIn) && gapIn > 0 ? gapIn : S.silenceMs(cfg.baudRate, cfg.parity, cfg.stopBits);
+      st.cfg = cfg.baudRate + ' 8' + cfg.parity[0].toUpperCase() + cfg.stopBits;
+      st.framer = new S.Framer(st.gap, onFrame);
+      st.sess = new S.Session({
+        onBytes,
+        onError: (e) => { toast('Serial: ' + (e && e.name ? e.name : 'error') + (e && e.message ? ' — ' + e.message : '')); },
+        onClose: () => { clearInterval(st.timer); if (st.framer) st.framer.flush(); st.sess = null; ctl(false); status(); toast('Serial port closed'); },
+      });
+      try { await st.sess.connect(cfg); }
+      catch (e) {
+        st.sess = null;
+        setStatus(e && e.name === 'NotFoundError' ? 'No port selected.' : '✖ Could not open port: ' + (e && e.message ? e.message : e) + ' (is another program using it?)');
+        return;
+      }
+      st.paused = false; $('#ser-pause').textContent = 'Pause';
+      ctl(true); status();
+      st.timer = setInterval(() => st.framer.tick(performance.now()), Math.max(2, Math.min(20, st.gap / 2)));
+    });
+    $('#ser-disconnect').addEventListener('click', () => { if (st.sess) st.sess.disconnect(); });
+    $('#ser-pause').addEventListener('click', () => { st.paused = !st.paused; $('#ser-pause').textContent = st.paused ? 'Resume' : 'Pause'; status(); });
+    $('#ser-clear').addEventListener('click', () => { st.frames = []; st.count = st.bytes = st.ok = st.bad = 0; st.raw = []; $('#ser-rawbox').textContent = ''; render(); });
+    $('#ser-send').addEventListener('click', async () => {
+      const p = ED.parseInput($('#ser-tx').value);
+      if (p.error) { toast(p.error); return; }
+      let b = p.bytes.slice();
+      if ($('#ser-tx-crc').checked) { const c = MBX.crc16(b); b = b.concat([c & 0xff, c >> 8]); }
+      try { await st.sess.write(b); toast('Sent ' + b.length + ' bytes: ' + ED.formatHex(b)); } catch (e) { toast('Send failed: ' + (e && e.message ? e.message : e)); }
+    });
+    status();
+    window.PL.app = Object.assign(window.PL.app || {}, { serialState: st });
+  })();
+
+  // ------------------------------------------------------------------ Tag helper (Wonderware DBLoad / iFIX)
+  (function () {
+    const TH = PL.taghelper;
+    let lastKind = 'dbload';
+    function run() {
+      const target = $('#tg-target').value, text = $('#tg-in').value, out = $('#tg-out'), ul = $('#tg-issues');
+      ul.replaceChildren(); out.value = '';
+      const addIssues = (list) => list.forEach((i) => ul.append(el('li', { class: i.level }, el('b', { text: { error: 'Error · ', warn: 'Warning · ', info: 'Note · ', ok: 'OK · ' }[i.level] }), (i.line ? 'Line ' + i.line + ': ' : '') + i.msg)));
+      lastKind = target;
+      if (!text.trim()) { return; }
+      if (target === 'validate') {
+        const v = TH.validateDbLoad(text);
+        addIssues(v.issues);
+        addIssues([{ level: v.issues.some((i) => i.level === 'error') ? 'info' : 'ok', line: 0, msg: v.stats.tags + ' tag row(s) in ' + v.stats.sections + ' section(s) checked.' }]);
+        return;
+      }
+      const numOr = (id, d) => { const v = CV.num($(id).value); return Number.isNaN(v) ? d : v; };
+      const o = { access: $('#tg-access').value.trim(), group: $('#tg-group').value.trim() || '$System', eu: $('#tg-eu').value.trim(), min: numOr('#tg-min', 0), max: numOr('#tg-max', 100), type: $('#tg-type').value, delim: $('#tg-delim').value, customHeader: $('#tg-hdr').value, node: $('#tg-node').value, driver: $('#tg-driver').value.trim(), fields: $('#tg-fields').value.split(/[\s,;]+/).filter(Boolean).map((x) => x.toUpperCase()) };
+      const p = TH.parseLines(text, { type: o.type });
+      addIssues(p.issues);
+      if (!p.rows.length) return;
+      let res;
+      if (target === 'dbload') res = TH.buildDbLoad(p.rows, o);
+      else if (target === 'ifix-ref') res = TH.ifixRefs(p.rows, o);
+      else { res = TH.fillByHeader(p.rows, $('#tg-hdr').value, o); addIssues(TH.ifixRefs(p.rows, o).issues.filter((i) => i.line)); }
+      addIssues(res.issues);
+      out.value = res.text;
+      const errs = res.issues.some((i) => i.level === 'error');
+      if (res.text) addIssues([{ level: errs ? 'warn' : 'ok', line: 0, msg: p.rows.length + ' tag(s) processed' + (errs ? ' — fix the errors above before importing.' : '.') }]);
+    }
+    $('#tg-gen').addEventListener('click', run);
+    $('#tg-target').addEventListener('change', run);
+    $('#tg-in').addEventListener('input', debounce(run, 300));
+    ['#tg-type', '#tg-access', '#tg-group', '#tg-eu', '#tg-min', '#tg-max', '#tg-delim', '#tg-node', '#tg-driver', '#tg-fields', '#tg-hdr'].forEach((id) => $(id).addEventListener('input', debounce(run, 300)));
+    $('#tg-sample').addEventListener('click', () => { $('#tg-in').value = TP.tagSample; run(); });
+    $('#tg-copy').addEventListener('click', async () => { if (!$('#tg-out').value) { toast('Nothing to copy'); return; } toast((await ED.copy($('#tg-out').value)) ? 'Copied' : 'Copy failed'); });
+    $('#tg-dl').addEventListener('click', () => {
+      const v = $('#tg-out').value; if (!v) { toast('Nothing to download'); return; }
+      const name = lastKind === 'dbload' ? 'dbload.csv' : lastKind === 'ifix-ref' ? 'ifix-tags.txt' : 'ifix-import.csv';
+      const url = URL.createObjectURL(new Blob([v], { type: 'text/csv' }));
+      const a = el('a', { href: url, download: name }); document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    });
+  })();
 
   // ------------------------------------------------------------------ History / notes
   const fmtDate = (ts) => new Date(ts).toLocaleString();
@@ -544,5 +796,5 @@
   // ------------------------------------------------------------------ init
   renderOpc();
   showTab(location.hash.slice(1) || 'modbus', false);
-  window.PL.app = { decodeQuality };
+  window.PL.app = Object.assign(window.PL.app || {}, { decodeQuality });
 })();

@@ -74,6 +74,46 @@
       <p class="hint" id="mb-parse-msg" role="status"></p>
     </div>
 
+    <details class="card" id="ser-card">
+      <summary><h2 class="inline">Live Serial Sniffer</h2> <span class="muted">— RS-485 / COM via Web Serial</span></summary>
+      <div class="banner warnbox" id="ser-warn" role="alert" hidden></div>
+      <div class="grid">
+        <label class="sel"><span>Baud rate</span>
+          <select id="ser-baud"><option>9600</option><option>19200</option><option>38400</option><option>115200</option></select></label>
+        <label class="sel"><span>Parity</span>
+          <select id="ser-parity"><option value="none">None</option><option value="even" selected>Even</option><option value="odd">Odd</option></select></label>
+        <label class="sel"><span>Data bits</span>
+          <select id="ser-data" disabled><option>8</option></select></label>
+        <label class="sel"><span>Stop bits</span>
+          <select id="ser-stop"><option value="1">1</option><option value="2">2</option></select></label>
+        <label class="sel"><span>Frame gap (ms, blank = auto)</span>
+          <input id="ser-gap" type="text" inputmode="decimal" placeholder="auto"></label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="ser-connect" type="button">Connect Serial (RS-485 / COM)</button>
+        <button class="btn" id="ser-disconnect" type="button" disabled>Disconnect</button>
+        <button class="btn" id="ser-pause" type="button" disabled>Pause</button>
+        <button class="btn" id="ser-clear" type="button">Clear</button>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="ser-auto" checked> Auto-analyze newest frame</label>
+        <label class="check"><input type="checkbox" id="ser-raw"> Show raw byte stream</label>
+      </div>
+      <p class="hint" id="ser-status" role="status">Not connected. Sniffing is passive — wire the adapter in parallel (A/B) with the bus.</p>
+      <div class="tablewrap"><table class="tbl" id="ser-table" hidden>
+        <thead><tr><th>#</th><th>Time</th><th>Len</th><th>CRC</th><th>Frame</th><th></th></tr></thead><tbody id="ser-body"></tbody></table></div>
+      <pre class="logbox rawbox" id="ser-rawbox" hidden></pre>
+      <details class="sub">
+        <summary>Transmit a frame (act as master)</summary>
+        <label for="ser-tx" class="lbl">Hex bytes to send. Only transmit if you are the master on this bus — never while sniffing a live network.</label>
+        <input id="ser-tx" type="text" autocomplete="off" spellcheck="false" placeholder="01 03 00 00 00 0A">
+        <div class="row">
+          <label class="check"><input type="checkbox" id="ser-tx-crc" checked> Append CRC-16</label>
+          <button class="btn" id="ser-send" type="button" disabled>Send</button>
+        </div>
+      </details>
+    </details>
+
     <div id="mb-out" aria-live="polite"></div>
 
     <details class="card">
@@ -114,7 +154,38 @@
       <div class="chips" id="opc-chips" role="group" aria-label="Filter"></div>
       <p class="hint" id="opc-count" role="status"></p>
     </div>
+    <p class="hint" id="opc-note" hidden></p>
     <div id="opc-list"></div>
+
+    <details class="card" id="tg-card">
+      <summary><h2 class="inline">Tag Helper</h2> <span class="muted">— Wonderware DBLoad CSV · iFIX tag strings</span></summary>
+      <p class="hint">Enter one tag per line: <code>TagName, Address, [type D/I/R], [comment], [EU], [min], [max]</code> (comma, semicolon or tab). Lines starting with # are ignored.</p>
+      <textarea id="tg-in" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Tank1_Level, 400001, R, Tank 1 level, %, 0, 100"></textarea>
+      <div class="grid">
+        <label class="sel"><span>Output</span>
+          <select id="tg-target"><option value="dbload">Wonderware DBLoad CSV</option><option value="ifix-ref">iFIX tag references (NODE.TAG.FIELD)</option><option value="ifix-csv">iFIX import rows (needs header)</option><option value="validate">Validate pasted DBLoad CSV</option></select></label>
+        <label class="sel"><span>Default type</span><select id="tg-type"><option value="real">IOReal</option><option value="int">IOInt</option><option value="disc">IODisc</option></select></label>
+        <label class="sel"><span>Access Name</span><input id="tg-access" type="text" value="PLC1"></label>
+        <label class="sel"><span>Group</span><input id="tg-group" type="text" value="$System"></label>
+        <label class="sel"><span>Default EU / min / max</span><span class="tri"><input id="tg-eu" type="text" value="" placeholder="unit" aria-label="Default engineering unit"><input id="tg-min" type="text" value="0" aria-label="Default minimum"><input id="tg-max" type="text" value="100" aria-label="Default maximum"></span></label>
+        <label class="sel"><span>Delimiter</span><select id="tg-delim"><option value=",">Comma ( , )</option><option value=";">Semicolon ( ; )</option><option value="&#9;">Tab</option></select></label>
+        <label class="sel"><span>iFIX node / driver / fields</span><span class="tri"><input id="tg-node" type="text" value="SCADA1" aria-label="iFIX node name"><input id="tg-driver" type="text" value="" placeholder="driver" aria-label="iFIX I/O driver"><input id="tg-fields" type="text" value="F_CV" aria-label="iFIX fields, comma separated"></span></label>
+      </div>
+      <details class="sub">
+        <summary>Custom header (recommended if DBLoad / iFIX import rejects the defaults)</summary>
+        <label for="tg-hdr" class="lbl">Paste the header line(s) exported by DBDump (e.g. <code>:IOInt;Tagname;Group;…</code>) or the header row of an iFIX Database Manager export. Columns are filled by name; unknown columns get safe defaults / blanks.</label>
+        <textarea id="tg-hdr" rows="3" spellcheck="false" autocomplete="off"></textarea>
+      </details>
+      <div class="row">
+        <button class="btn primary" id="tg-gen" type="button">Generate / Validate</button>
+        <button class="btn" id="tg-sample" type="button">Sample</button>
+        <button class="btn" id="tg-copy" type="button">Copy output</button>
+        <button class="btn" id="tg-dl" type="button">Download .csv</button>
+      </div>
+      <ul class="issues" id="tg-issues"></ul>
+      <textarea id="tg-out" rows="8" readonly spellcheck="false" aria-label="Generated output"></textarea>
+      <p class="hint">Default column sets are the commonly documented ones and can differ by InTouch version — import 2–3 tags into a test application first.</p>
+    </details>
 
     <div class="card">
       <h2>OPC DA Quality Decoder</h2>
@@ -183,18 +254,78 @@
     </div>
 
     <div class="card">
-      <h2>32-bit Register Decoder (int / float)</h2>
+      <h2>PLC Endianness &amp; Word Swapper (32 / 64-bit)</h2>
+      <p class="hint">Scrambled floats between Siemens, Rockwell and Modbus devices are usually a byte/word order problem. Enter what you <em>read</em> and see every interpretation side by side.</p>
       <div class="grid">
-        <label class="sel"><span>Register 1 (first read)</span><input id="w32-a" type="text" placeholder="0x4048 or 16456"></label>
-        <label class="sel"><span>Register 2</span><input id="w32-b" type="text" placeholder="0xF5C3 or 62915"></label>
+        <label class="sel"><span>Width</span><select id="en-width"><option value="32">32-bit (2 registers)</option><option value="64">64-bit (4 registers)</option></select></label>
+        <label class="sel"><span>Input as</span><select id="en-mode"><option value="regs">Registers (16-bit, dec / 0x)</option><option value="bytes">Raw bytes (hex)</option></select></label>
+        <label class="sel grow"><span>Raw value, in the order received</span><input id="en-in" type="text" autocomplete="off" spellcheck="false" placeholder="0x4048 0xF5C3"></label>
       </div>
-      <div id="w32-out" aria-live="polite"></div>
+      <div id="en-out" aria-live="polite"></div>
       <hr>
+      <h3 class="subh">Convert layout</h3>
       <div class="grid">
-        <label class="sel"><span>Encode value</span><input id="enc-val" type="text" placeholder="3.14"></label>
-        <label class="sel"><span>Type</span><select id="enc-type"><option value="f32">Float32</option><option value="i32">Int32</option><option value="u32">UInt32</option></select></label>
+        <label class="sel"><span>From</span><select id="en-from"></select></label>
+        <label class="sel"><span>To</span><select id="en-to"></select></label>
       </div>
-      <div id="enc-out" aria-live="polite"></div>
+      <div id="en-conv" aria-live="polite"></div>
+      <hr>
+      <h3 class="subh">Encode a value (what to write)</h3>
+      <div class="grid">
+        <label class="sel"><span>Value</span><input id="en-val" type="text" autocomplete="off" placeholder="3.14"></label>
+        <label class="sel"><span>Type</span><select id="en-type"><option value="f">Float (IEEE 754)</option><option value="i">Signed integer</option><option value="u">Unsigned integer</option></select></label>
+      </div>
+      <div id="en-enc" aria-live="polite"></div>
+      <p class="hint">Vendor labels are typical conventions only; the real order also depends on the gateway/driver in between. Trust the order that gives a plausible value.</p>
+    </div>
+
+    <div class="card">
+      <h2>4–20 mA Loop Calculator</h2>
+      <div class="row">
+        <button class="btn small" type="button" data-lp="0,100,bar">0–100 bar</button>
+        <button class="btn small" type="button" data-lp="-50,150,°C">−50…150 °C</button>
+        <button class="btn small" type="button" data-lp="0,10,bar">0–10 bar</button>
+        <button class="btn small" type="button" data-lp="0,100,%">0–100 %</button>
+      </div>
+      <div class="grid">
+        <label class="sel"><span>Signal</span><select id="lp-mode"><option value="4-20">4–20 mA</option><option value="0-20">0–20 mA</option></select></label>
+        <label class="sel"><span>EU at low end</span><input id="lp-eulo" type="text" inputmode="decimal" value="0"></label>
+        <label class="sel"><span>EU at full scale</span><input id="lp-euhi" type="text" inputmode="decimal" value="100"></label>
+        <label class="sel"><span>Unit</span><input id="lp-unit" type="text" value="bar"></label>
+      </div>
+      <label class="lbl lp-lbl" for="lp-slider">Loop current (slide or type)</label>
+      <input type="range" id="lp-slider" min="0" max="24" step="0.01" value="12">
+      <div class="grid">
+        <label class="sel"><span>Loop current (mA)</span><input id="lp-ma" type="text" inputmode="decimal" value="12"></label>
+        <label class="sel"><span>Process value (<span id="lp-unit-lbl">bar</span>)</span><input id="lp-eu" type="text" inputmode="decimal" value="50"></label>
+      </div>
+      <div id="lp-out" aria-live="polite"></div>
+      <hr>
+      <h3 class="subh">Resistor voltage drop (Ohm’s law) — for multimeter checks</h3>
+      <div class="row">
+        <button class="btn small" type="button" data-ohm="250">250 Ω (HART)</button>
+        <button class="btn small" type="button" data-ohm="100">100 Ω</button>
+        <button class="btn small" type="button" data-ohm="500">500 Ω</button>
+        <button class="btn small" type="button" id="oh-use">Use loop mA above</button>
+      </div>
+      <div class="grid">
+        <label class="sel"><span>Current (mA)</span><input id="oh-ma" type="text" inputmode="decimal" value="4"></label>
+        <label class="sel"><span>Resistor (Ω)</span><input id="oh-r" type="text" inputmode="decimal" value="250"></label>
+        <label class="sel"><span>Voltage (V) — type to reverse</span><input id="oh-v" type="text" inputmode="decimal" value="1"></label>
+      </div>
+      <div id="oh-out" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>IPv4 Subnet &amp; CIDR Planner</h2>
+      <label for="sn-in" class="lbl">Address with prefix (192.168.1.50/24) or address + mask (10.0.0.5 255.255.255.240)</label>
+      <input id="sn-in" type="text" autocomplete="off" spellcheck="false" placeholder="192.168.1.50/24">
+      <div id="sn-out" aria-live="polite"></div>
+      <div class="grid">
+        <label class="sel"><span>Is this IP in the subnet?</span><input id="sn-chk" type="text" autocomplete="off" placeholder="192.168.1.200"></label>
+        <label class="sel"><span>Split into /…</span><input id="sn-split" type="text" inputmode="numeric" placeholder="28"></label>
+      </div>
+      <div id="sn-extra" aria-live="polite"></div>
     </div>
 
     <div class="card">
@@ -247,7 +378,7 @@
 </main>
 
 <footer class="foot">
-  <span>ProtoLink Diagnostics v1.0.0</span> · <a href="privacy.html">Privacy</a> ·
+  <span>ProtoLink Diagnostics v1.1.0</span> · <a href="privacy.html">Privacy</a> ·
   <span>100% client-side. Verify critical settings against vendor documentation.</span>
 </footer>
 
@@ -258,6 +389,10 @@
 <script src="js/templates.js"></script>
 <script src="js/tag-converter.js"></script>
 <script src="js/db.js"></script>
+<script src="js/serial.js"></script>
+<script src="js/instrument.js"></script>
+<script src="js/subnet.js"></script>
+<script src="js/tag-helper.js"></script>
 <script src="app.js"></script>
 <script src="sw-register.js"></script>
 </body>

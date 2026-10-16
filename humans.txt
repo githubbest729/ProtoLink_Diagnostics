@@ -10,4 +10,4 @@ OPC Foundation — OPC DA / UA specifications
 /* SITE */
 Standards: HTML5, CSS3, ES2018, Service Worker, Web App Manifest
 Components: Vanilla JS, IndexedDB — no frameworks, no build step
-Last update: 2026/10/15
+Last update: 2026/10/16
