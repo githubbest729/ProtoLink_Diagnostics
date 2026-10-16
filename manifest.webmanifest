@@ -1,0 +1,26 @@
+{
+  "id": "./",
+  "name": "ProtoLink Diagnostics",
+  "short_name": "ProtoLink",
+  "description": "Offline Modbus frame analyzer, OPC DA/UA troubleshooter and log parser for SCADA field engineers.",
+  "lang": "en",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0d1117",
+  "theme_color": "#0d1117",
+  "categories": ["utilities", "productivity", "business"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon-512.png.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ],
+  "shortcuts": [
+    { "name": "Modbus Analyzer", "short_name": "Modbus", "url": "./#modbus" },
+    { "name": "OPC Troubleshooter", "short_name": "OPC", "url": "./#opc" },
+    { "name": "Log Parser", "short_name": "Logs", "url": "./#logs" }
+  ]
+}

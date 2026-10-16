@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy · ProtoLink Diagnostics</title>
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main id="main">
+  <div class="card">
+    <h2>Privacy</h2>
+    <p>ProtoLink Diagnostics is a static, 100% client-side web app.</p>
+    <ul>
+      <li><strong>No data leaves your device.</strong> Frames, logs and notes you paste or open are processed locally in your browser. There is no server, analytics, tracking or advertising.</li>
+      <li><strong>Local storage only.</strong> If you press “Save”, the item is stored in your browser’s IndexedDB (or localStorage as a fallback). DCOM checklist ticks use localStorage. Use <em>Saved → Delete everything</em> or clear site data to remove it.</li>
+      <li><strong>Offline cache.</strong> A service worker stores the app files so it works without a connection.</li>
+      <li><strong>Hosting.</strong> The static files are served by your host (e.g. GitHub Pages), which may keep standard access logs under its own policy.</li>
+    </ul>
+    <p class="muted">Tip: field logs can contain IP addresses, tag names and credentials. Don’t save sensitive logs on shared devices.</p>
+    <p><a class="btn primary" href="./">Back to the app</a></p>
+  </div>
+</main>
+</body>
+</html>

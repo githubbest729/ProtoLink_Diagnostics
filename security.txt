@@ -1,0 +1,5 @@
+# RFC 9116 — replace the placeholders. For GitHub Pages the canonical location
+# is /.well-known/security.txt; this copy at the root is kept per project layout.
+Contact: mailto:security@example.com
+Expires: 2027-10-15T00:00:00.000Z
+Preferred-Languages: en

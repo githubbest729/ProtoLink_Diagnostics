@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Replace YOUR-USER / repo name with your real GitHub Pages URL. -->
+  <url><loc>https://YOUR-USER.github.io/protolink-diagnostics/</loc><changefreq>monthly</changefreq></url>
+  <url><loc>https://YOUR-USER.github.io/protolink-diagnostics/privacy.html</loc><changefreq>yearly</changefreq></url>
+</urlset>

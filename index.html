@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ProtoLink Diagnostics</title>
+  <meta name="description" content="Offline-capable Modbus frame analyzer, OPC DA/UA troubleshooter and log parser for SCADA field engineers.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; manifest-src 'self'; worker-src 'self'; base-uri 'self'; form-action 'none'; object-src 'none'">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ProtoLink">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="msapplication-config" content="browserconfig.xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/svg+xml" href="icons/favicon.ico.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="brand">
+    <img src="icons/favicon.ico.svg" alt="" width="28" height="28">
+    <div>
+      <h1>ProtoLink <span>Diagnostics</span></h1>
+      <p class="tagline">Modbus · OPC · Logs — works offline</p>
+    </div>
+  </div>
+  <div class="pills">
+    <span class="pill" id="pill-net" role="status">…</span>
+    <span class="pill" id="pill-sw" role="status">…</span>
+    <button class="btn small" id="btn-install" type="button" hidden>Install app</button>
+  </div>
+</header>
+
+<div class="banner" id="update-banner" hidden>
+  <span>A new version is ready.</span>
+  <button class="btn small primary" id="btn-update" type="button">Reload to update</button>
+</div>
+
+<nav class="tabs" role="tablist" aria-label="Tools">
+  <button class="tab" role="tab" id="t-modbus" data-tab="modbus" aria-controls="tab-modbus" aria-selected="true"><span class="ico" aria-hidden="true">⇄</span><span>Modbus</span></button>
+  <button class="tab" role="tab" id="t-opc" data-tab="opc" aria-controls="tab-opc" aria-selected="false"><span class="ico" aria-hidden="true">⚙</span><span>OPC</span></button>
+  <button class="tab" role="tab" id="t-logs" data-tab="logs" aria-controls="tab-logs" aria-selected="false"><span class="ico" aria-hidden="true">☰</span><span>Logs</span></button>
+  <button class="tab" role="tab" id="t-tools" data-tab="tools" aria-controls="tab-tools" aria-selected="false"><span class="ico" aria-hidden="true">∑</span><span>Tools</span></button>
+  <button class="tab" role="tab" id="t-history" data-tab="history" aria-controls="tab-history" aria-selected="false"><span class="ico" aria-hidden="true">⌚</span><span>Saved</span></button>
+</nav>
+
+<main id="main">
+  <noscript><div class="card"><p>ProtoLink Diagnostics needs JavaScript. Everything runs locally in your browser.</p></div></noscript>
+
+  <!-- ===================================================== MODBUS -->
+  <section class="panel" id="tab-modbus" role="tabpanel" aria-labelledby="t-modbus">
+    <div class="card">
+      <h2>Modbus Frame Analyzer</h2>
+      <label for="mb-input" class="lbl">Paste a raw frame (hex). RTU incl. CRC, TCP incl. MBAP header, or ASCII <code>:0103…LRC</code></label>
+      <textarea id="mb-input" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="01 03 00 00 00 0A C5 CD"></textarea>
+      <div class="row">
+        <label class="sel"><span>Mode</span>
+          <select id="mb-mode"><option value="auto">Auto-detect</option><option value="rtu">RTU (CRC-16)</option><option value="tcp">TCP (MBAP)</option><option value="ascii">ASCII (LRC)</option></select></label>
+        <label class="sel"><span>Direction</span>
+          <select id="mb-dir"><option value="auto">Auto</option><option value="request">Request</option><option value="response">Response</option></select></label>
+        <label class="sel grow"><span>Examples</span>
+          <select id="mb-sample"><option value="">Load an example…</option></select></label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="mb-analyze" type="button">Analyze</button>
+        <button class="btn" id="mb-paste" type="button">Paste</button>
+        <button class="btn" id="mb-clear" type="button">Clear</button>
+      </div>
+      <p class="hint" id="mb-parse-msg" role="status"></p>
+    </div>
+
+    <div id="mb-out" aria-live="polite"></div>
+
+    <details class="card">
+      <summary><h2 class="inline">Frame Builder</h2> <span class="muted">— generate a request with CRC / LRC / MBAP</span></summary>
+      <div class="grid">
+        <label class="sel"><span>Mode</span><select id="bd-mode"><option value="rtu">RTU</option><option value="tcp">TCP</option><option value="ascii">ASCII</option></select></label>
+        <label class="sel"><span>Slave / Unit ID</span><input id="bd-slave" type="text" inputmode="numeric" value="1"></label>
+        <label class="sel"><span>Function</span>
+          <select id="bd-fc">
+            <option value="3">03 Read Holding Registers</option><option value="4">04 Read Input Registers</option>
+            <option value="1">01 Read Coils</option><option value="2">02 Read Discrete Inputs</option>
+            <option value="5">05 Write Single Coil</option><option value="6">06 Write Single Register</option>
+            <option value="15">15 Write Multiple Coils</option><option value="16">16 Write Multiple Registers</option>
+          </select></label>
+        <label class="sel"><span>Start address (0-based or 0x…)</span><input id="bd-addr" type="text" value="0"></label>
+        <label class="sel"><span id="bd-data-label">Quantity</span><input id="bd-data" type="text" value="10"></label>
+        <label class="sel" id="bd-txid-wrap" hidden><span>Transaction ID</span><input id="bd-txid" type="text" value="1"></label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="bd-build" type="button">Build frame</button>
+      </div>
+      <div id="bd-result" aria-live="polite"></div>
+    </details>
+
+    <div class="legend" aria-label="Legend">
+      <span class="chip cls-hdr">MBAP header</span><span class="chip cls-addr">Slave / Unit</span><span class="chip cls-fc">Function</span>
+      <span class="chip cls-reg">Address</span><span class="chip cls-qty">Quantity / count</span><span class="chip cls-data">Data</span>
+      <span class="chip cls-crc">CRC / LRC ✓</span><span class="chip cls-exc">Exception</span><span class="chip cls-err">Error</span>
+    </div>
+  </section>
+
+  <!-- ===================================================== OPC -->
+  <section class="panel" id="tab-opc" role="tabpanel" aria-labelledby="t-opc" hidden>
+    <div class="card">
+      <h2>OPC DA / UA Troubleshooter</h2>
+      <label for="opc-search" class="lbl">Search symptoms, error codes (0x80070005), quality values, “DCOM”, “timeout”, “certificate”…</label>
+      <input id="opc-search" type="search" autocomplete="off" spellcheck="false" placeholder="e.g. 0x800706BA or bad quality">
+      <div class="chips" id="opc-chips" role="group" aria-label="Filter"></div>
+      <p class="hint" id="opc-count" role="status"></p>
+    </div>
+    <div id="opc-list"></div>
+
+    <div class="card">
+      <h2>OPC DA Quality Decoder</h2>
+      <label for="q-input" class="lbl">Quality byte — decimal (192) or hex (0xC0)</label>
+      <input id="q-input" type="text" inputmode="text" autocomplete="off" placeholder="24">
+      <div id="q-out" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>OPC UA Status Code Lookup</h2>
+      <input id="ua-search" type="search" autocomplete="off" aria-label="Search OPC UA status codes" placeholder="Search name, hex or text">
+      <div class="tablewrap"><table class="tbl"><thead><tr><th>Name</th><th>Code</th><th>Meaning</th></tr></thead><tbody id="ua-body"></tbody></table></div>
+    </div>
+
+    <div class="card">
+      <h2>DCOM Quick Checklist</h2>
+      <p class="hint">Ticks are remembered on this device only.</p>
+      <ul class="checklist" id="dcom-list"></ul>
+    </div>
+  </section>
+
+  <!-- ===================================================== LOGS -->
+  <section class="panel" id="tab-logs" role="tabpanel" aria-labelledby="t-logs" hidden>
+    <div class="card">
+      <h2>Log Snippet Parser</h2>
+      <label for="log-input" class="lbl">Paste device / Wonderware SMC Log Viewer text — or open a .log/.txt file (never leaves this device)</label>
+      <textarea id="log-input" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste log lines here…"></textarea>
+      <div class="row">
+        <button class="btn primary" id="log-analyze" type="button">Analyze</button>
+        <button class="btn" id="log-sample" type="button">Sample</button>
+        <label class="btn filebtn">Open file<input id="log-file" type="file" accept=".log,.txt,.csv,text/*"></label>
+        <button class="btn" id="log-clear" type="button">Clear</button>
+      </div>
+      <div class="row">
+        <label class="sel grow"><span>Custom regex highlight (optional)</span><input id="log-custom" type="text" autocomplete="off" spellcheck="false" placeholder="e.g. PLC_0[12]|SCADA\d+"></label>
+        <label class="check"><input type="checkbox" id="log-only"> Only matching lines</label>
+        <label class="check"><input type="checkbox" id="log-nums" checked> Line numbers</label>
+      </div>
+      <p class="hint" id="log-msg" role="status"></p>
+    </div>
+    <div class="card" id="log-result" hidden>
+      <div class="chips" id="log-chips" role="group" aria-label="Filter lines"></div>
+      <p class="hint" id="log-summary" role="status"></p>
+      <div class="logbox" id="log-out" tabindex="0" aria-label="Parsed log"></div>
+    </div>
+    <div class="card" id="log-findings-card" hidden>
+      <h2>Findings</h2>
+      <div class="tablewrap"><table class="tbl"><thead><tr><th>Finding</th><th>×</th><th>Meaning</th><th></th></tr></thead><tbody id="log-findings"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== TOOLS -->
+  <section class="panel" id="tab-tools" role="tabpanel" aria-labelledby="t-tools" hidden>
+    <div class="card">
+      <h2>Modicon Address ⇄ Protocol Offset</h2>
+      <label for="ad-input" class="lbl">Modicon reference (40001 or 400001)</label>
+      <input id="ad-input" type="text" inputmode="numeric" autocomplete="off" placeholder="40001">
+      <div id="ad-out" aria-live="polite"></div>
+      <hr>
+      <div class="grid">
+        <label class="sel"><span>Table</span><select id="ad2-table"><option value="4">4x Holding</option><option value="3">3x Input reg</option><option value="0">0x Coil</option><option value="1">1x Discrete in</option></select></label>
+        <label class="sel"><span>Protocol offset (dec / 0x…)</span><input id="ad2-offset" type="text" placeholder="0x0064"></label>
+        <label class="sel"><span>Format</span><select id="ad2-digits"><option value="5">5-digit</option><option value="6">6-digit</option></select></label>
+      </div>
+      <div id="ad2-out" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>32-bit Register Decoder (int / float)</h2>
+      <div class="grid">
+        <label class="sel"><span>Register 1 (first read)</span><input id="w32-a" type="text" placeholder="0x4048 or 16456"></label>
+        <label class="sel"><span>Register 2</span><input id="w32-b" type="text" placeholder="0xF5C3 or 62915"></label>
+      </div>
+      <div id="w32-out" aria-live="polite"></div>
+      <hr>
+      <div class="grid">
+        <label class="sel"><span>Encode value</span><input id="enc-val" type="text" placeholder="3.14"></label>
+        <label class="sel"><span>Type</span><select id="enc-type"><option value="f32">Float32</option><option value="i32">Int32</option><option value="u32">UInt32</option></select></label>
+      </div>
+      <div id="enc-out" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>CRC-16 / LRC Calculator</h2>
+      <label for="ck-input" class="lbl">Hex bytes WITHOUT checksum</label>
+      <input id="ck-input" type="text" autocomplete="off" spellcheck="false" placeholder="01 03 00 00 00 0A">
+      <div id="ck-out" aria-live="polite"></div>
+    </div>
+
+    <div class="card">
+      <h2>Linear Scaling (raw → engineering units)</h2>
+      <div class="row">
+        <button class="btn small" type="button" data-preset="5530,27648,4,20">Siemens 4-20 mA (5530…27648)</button>
+        <button class="btn small" type="button" data-preset="0,27648,0,100">Siemens 0-27648 → 0-100</button>
+        <button class="btn small" type="button" data-preset="0,65535,0,100">0-65535 → 0-100</button>
+        <button class="btn small" type="button" data-preset="0,4095,0,100">12-bit → 0-100</button>
+      </div>
+      <div class="grid">
+        <label class="sel"><span>Raw value</span><input id="sc-raw" type="text" value="13824"></label>
+        <label class="sel"><span>Raw min</span><input id="sc-rmin" type="text" value="0"></label>
+        <label class="sel"><span>Raw max</span><input id="sc-rmax" type="text" value="27648"></label>
+        <label class="sel"><span>EU min</span><input id="sc-emin" type="text" value="0"></label>
+        <label class="sel"><span>EU max</span><input id="sc-emax" type="text" value="100"></label>
+      </div>
+      <div id="sc-out" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <!-- ===================================================== HISTORY -->
+  <section class="panel" id="tab-history" role="tabpanel" aria-labelledby="t-history" hidden>
+    <div class="card">
+      <h2>Saved Frames</h2>
+      <p class="hint">Stored in this browser only (IndexedDB). Nothing is uploaded.</p>
+      <div id="hist-frames"></div>
+    </div>
+    <div class="card">
+      <h2>Field Notes</h2>
+      <label for="note-input" class="lbl">Quick note (site, device, finding)</label>
+      <textarea id="note-input" rows="3" placeholder="Plant 2 / PLC_01 — slave ID is 17 not 1, fixed swapped A/B on RS-485"></textarea>
+      <div class="row"><button class="btn primary" id="note-save" type="button">Save note</button></div>
+      <div id="hist-notes"></div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <button class="btn" id="hist-export" type="button">Export all (JSON)</button>
+        <button class="btn danger" id="hist-clear" type="button">Delete everything</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>ProtoLink Diagnostics v1.0.0</span> · <a href="privacy.html">Privacy</a> ·
+  <span>100% client-side. Verify critical settings against vendor documentation.</span>
+</footer>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script src="js/editor.js"></script>
+<script src="js/validator.js"></script>
+<script src="js/templates.js"></script>
+<script src="js/tag-converter.js"></script>
+<script src="js/db.js"></script>
+<script src="app.js"></script>
+<script src="sw-register.js"></script>
+</body>
+</html>

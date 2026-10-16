@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+# Replace with your real URL after deploying:
+Sitemap: https://YOUR-USER.github.io/protolink-diagnostics/sitemap.xml
