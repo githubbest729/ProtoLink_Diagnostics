@@ -4,7 +4,7 @@
   <p><em>Offline-capable PWA for SCADA field engineers: Modbus frame analyzer, OPC DA/UA troubleshooter (Wonderware-focused), and log snippet parser.</em></p>
   
   <p>
-    <img src="https://img.shields.io/badge/version-1.2.0-blue.svg?style=flat-square" alt="Version 1.2.0" />
+    <img src="https://img.shields.io/badge/version-1.3.1-blue.svg?style=flat-square" alt="Version 1.3.1" />
     <img src="https://img.shields.io/badge/PWA-Offline_Ready-success.svg?style=flat-square" alt="Offline Ready" />
     <img src="https://img.shields.io/badge/Architecture-100%25_Client_Side-orange.svg?style=flat-square" alt="Client Side" />
     <img src="https://img.shields.io/badge/Hardware-Web_Serial_API-9cf.svg?style=flat-square" alt="Web Serial API" />
@@ -51,6 +51,17 @@ graph TD
 | 💾 **Saved** | Save frames and field notes to IndexedDB on the device; export to JSON, CSV, or TXT. |
 
 ---
+
+## 🎨 What's new in v1.3.1 / v1.3.0
+
+**v1.3.1:** brighter light-blue `(?)` tooltip icons; clearer empty state in the Saved tab; the *Delete everything* confirmation now reads “Are you sure you want to delete all saved frames and notes? This cannot be undone.”
+
+**v1.3.0:** (beginner-friendly UI)
+
+1. **Colour-coded status pills** in the 4–20 mA Loop Calculator: green **Normal**, amber **Under-range / Over-range** (dark text), red **Fault** (NAMUR-style, below 3.6 mA or above 21 mA). The plain-language explanation stays next to the pill. Labels come from `PL.instrument.loopStatus()` (`label` field, unit-tested).
+2. **`(?)` hover tooltips**, pure CSS (`data-tip` + `::after`): *Endianness*, *CIDR* and *MBAP* (Modbus input hint and the frame legend). They also open on keyboard focus and on tap, so they work on phones.
+3. **Export toast:** *Download CSV*, *Download TXT* and *Export all (JSON)* show "✅ File exported to Downloads", which slides up at the bottom-centre, stays 3 s and fades out. Reduced-motion users get no slide.
+4. **Sticky input boxes:** the Modbus frame box and the Log text box stay pinned under the top bar (and under the serial dock on the Modbus tab) while you scroll through results. Mode / Examples / Analyze sit in a second card and scroll away normally. On very short screens (landscape phones, under 560 px high) pinning is switched off so results stay readable.
 
 ## ✨ What's new in v1.2.0 (field-usability update)
 
@@ -119,7 +130,7 @@ Everything uses relative paths, so it works from a repo sub-path or a custom dom
 - `.well-known/assetlinks.json` / `apple-app-site-association` are empty stubs (only needed if you later wrap the PWA as a Play Store TWA / iOS app).
 
 ## 🔄 Shipping updates
-1. Change files, bump `VERSION` in `service-worker.js` (currently `1.2.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
+1. Change files, bump `VERSION` in `service-worker.js` (currently `1.3.1`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
 2. Users who already installed the app see a **"Reload to update"** banner when online.
 
 ## 💻 Local development / tests

@@ -34,13 +34,17 @@
   const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } };
   const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } };
 
-  let toastTimer;
-  function toast(msg) {
+  let toastTimer, toastTimer2;
+  /** Bottom-centre toast: slides up, stays `ms` (default 2.6 s), then fades out. */
+  function toast(msg, ms) {
     const t = $('#toast');
-    t.textContent = msg; t.hidden = false;
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+    clearTimeout(toastTimer); clearTimeout(toastTimer2);
+    t.classList.remove('out'); t.textContent = msg; t.hidden = false;
+    void t.offsetWidth; // restart the slide-up animation when toasts come in quick succession
+    t.style.animation = 'none'; void t.offsetWidth; t.style.animation = '';
+    toastTimer = setTimeout(() => { t.classList.add('out'); toastTimer2 = setTimeout(() => { t.hidden = true; t.classList.remove('out'); }, 450); }, ms || 2600);
   }
+  const EXPORTED = '✅ File exported to Downloads';
   const copyBtn = (text, label) => el('button', { class: 'btn small', type: 'button', onclick: async () => { toast((await ED.copy(text)) ? 'Copied' : 'Copy failed — select and copy manually'); } }, label || 'Copy');
 
   // One-click copy icon: copies a clean plain value (no labels/units) so it can be pasted straight into a tag dialog.
@@ -72,6 +76,7 @@
     if (updateHash) history.replaceState(null, '', '#' + id);
     if (id === 'history') renderHistory();
     window.scrollTo(0, 0);
+    if (typeof updateStickyOffsets === 'function') updateStickyOffsets();
   }
   $$('.tab').forEach((b) => b.addEventListener('click', () => showTab(b.dataset.tab, true)));
   $('.tabs').addEventListener('keydown', (e) => {
@@ -590,7 +595,7 @@
       const rows = [['Span', rnd(pct, 2) + ' %'], ['Process value', rnd(LP.loopToEU(mA, o), 4) + ' ' + ($('#lp-unit').value || '')],
         ['S7 raw (module 4–20 mA)', String(LP.siemensRaw(mA, '4-20')) + '  (nominal 0…27648)'], ['S7 raw (module 0–20 mA)', String(LP.siemensRaw(mA, '0-20'))]];
       const dl = el('dl', { class: 'kv' }); rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', { text: r[1] })));
-      out.append(dl, el('div', { class: 'verdict ' + (st.level === 'good' ? 'good' : st.level === 'warn' ? 'warn' : 'bad') }, el('span', { text: st.text })));
+      out.append(dl, el('div', { class: 'verdict ' + (st.level === 'good' ? 'good' : st.level === 'warn' ? 'warn' : 'bad') }, el('span', { class: 'pill ' + st.level, role: 'status', text: st.label }), el('span', { text: st.text })));
       ohm('ma-sync');
     }
     function ohm(src) {
@@ -814,7 +819,7 @@
   function renderHistory() {
     PL.db.list('frames').then((rows) => {
       const t = $('#hist-frames'); t.replaceChildren();
-      if (!rows.length) { t.append(el('p', { class: 'muted', text: 'No saved frames yet. Analyze a frame and press “Save to history”.' })); return; }
+      if (!rows.length) { t.append(el('p', { class: 'muted empty' }, 'Your history is empty. Go to the ', el('b', { text: 'Modbus' }), ' tab, analyze a frame, and click ', el('b', { text: 'Save' }), ' to store it here for offline reference.')); return; }
       rows.forEach((r) => t.append(el('div', { class: 'card' },
         el('div', { class: 'muted', text: fmtDate(r.ts) + ' · ' + String(r.mode).toUpperCase() }),
         el('div', { class: 'out', text: r.hex }), el('p', { text: r.summary || '' }),
@@ -845,7 +850,7 @@
       if (!frames.length && !notes.length) { toast('Nothing saved yet'); return; }
       if (kind === 'csv') downloadText('protolink-saved-' + stampName() + '.csv', PL.exporter.toCsv(frames, notes), 'text/csv;charset=utf-8');
       else downloadText('protolink-saved-' + stampName() + '.txt', PL.exporter.toTxt(frames, notes, 'ProtoLink Diagnostics — saved frames, notes and logs'), 'text/plain;charset=utf-8');
-      toast('Downloaded ' + (frames.length + notes.length) + ' item(s)');
+      toast(EXPORTED, 3000);
     } catch (e) { toast('Export failed'); }
   }
   $('#hist-csv').addEventListener('click', () => exportText('csv'));
@@ -856,10 +861,11 @@
       const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
       const a = el('a', { href: url, download: 'protolink-export.json' }); document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
+      toast(EXPORTED, 3000);
     } catch (e) { toast('Export failed'); }
   });
   $('#hist-clear').addEventListener('click', async () => {
-    if (!window.confirm('Delete all saved frames and notes on this device?')) return;
+    if (!window.confirm('Are you sure you want to delete all saved frames and notes? This cannot be undone.')) return;
     try { await PL.db.clear('frames'); await PL.db.clear('notes'); toast('Deleted'); renderHistory(); } catch (e) { toast('Failed'); }
   });
 
@@ -880,16 +886,22 @@
     const tabsSticky = getComputedStyle(tabs).position === 'sticky' ? tabs.offsetHeight : 0;
     document.documentElement.style.setProperty('--topbar-h', tb + 'px');
     document.documentElement.style.setProperty('--dock-top', (tb + tabsSticky + 6) + 'px');
+    const dk = $('#ser-dock');
+    document.documentElement.style.setProperty('--dock-h', (dk && dk.offsetParent !== null ? dk.offsetHeight : 0) + 'px');
     // keep auto-scrolled / anchored elements clear of the sticky bars (dock only matters on the Modbus tab)
     const dock = $('#ser-dock'), dockVisible = dock && dock.offsetParent !== null;
     const bottomTabs = tabsSticky ? 0 : tabs.offsetHeight;
-    document.documentElement.style.scrollPaddingTop = (tb + tabsSticky + (dockVisible ? dock.offsetHeight + 12 : 8)) + 'px';
+    const pin = document.querySelector('.panel:not([hidden]) .stick-in');
+    const pinH = pin && getComputedStyle(pin).position === 'sticky' ? pin.offsetHeight + 8 : 0;
+    document.documentElement.style.scrollPaddingTop = (tb + tabsSticky + (dockVisible ? dock.offsetHeight + 12 : 8) + pinH) + 'px';
     document.documentElement.style.scrollPaddingBottom = (bottomTabs + 12) + 'px';
   }
   window.addEventListener('resize', debounce(updateStickyOffsets, 100));
   updateStickyOffsets();
   if (window.ResizeObserver) { const ro = new ResizeObserver(updateStickyOffsets); ro.observe($('.topbar')); if ($('#ser-dock')) ro.observe($('#ser-dock')); }
   window.addEventListener('hashchange', updateStickyOffsets);
+  document.querySelectorAll('.stick-in').forEach((n) => window.ResizeObserver && new ResizeObserver(updateStickyOffsets).observe(n));
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.tip')) { e.preventDefault(); e.target.closest('.tip').focus(); } });
 
   // ------------------------------------------------------------------ init
   renderOpc();

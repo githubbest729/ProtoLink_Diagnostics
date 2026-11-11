@@ -246,3 +246,8 @@ details.tool[open] > summary { margin-bottom: 10px; }
 .stick-in textarea { max-height: 26vh; resize: vertical; }
 @media (max-width: 600px) { .stick-in { padding: 8px 10px; } .stick-in h2 { font-size: 1rem; margin: 0 0 4px; } .stick-in .lbl { font-size: .78rem; margin-bottom: 4px; } .stick-in textarea { max-height: 17vh; min-height: 64px; } }
 @media (max-height: 560px) { .stick-in { position: static; box-shadow: none; } } /* landscape phones: not enough room to pin */
+
+/* ---------- v1.3.1: more prominent (?) icons + empty state ---------- */
+.tip { background: #0c2d48; border-color: #38bdf8; color: #7dd3fc; box-shadow: 0 0 0 1px rgba(56,189,248,.25); }
+.tip:hover, .tip:focus { background: #38bdf8; border-color: #38bdf8; color: #06202f; }
+.empty b { color: var(--amber); }

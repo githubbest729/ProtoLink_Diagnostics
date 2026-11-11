@@ -4,7 +4,7 @@
  */
 'use strict';
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.1';
 const BUILD = '__BUILD__';
 const CACHE = `protolink-v${VERSION}-${BUILD}`;
 
