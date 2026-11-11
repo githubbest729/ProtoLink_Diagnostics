@@ -4,7 +4,7 @@
   <p><em>Offline-capable PWA for SCADA field engineers: Modbus frame analyzer, OPC DA/UA troubleshooter (Wonderware-focused), and log snippet parser.</em></p>
   
   <p>
-    <img src="https://img.shields.io/badge/version-1.7.0-blue.svg?style=flat-square" alt="Version 1.7.0" />
+    <img src="https://img.shields.io/badge/version-1.7.1-blue.svg?style=flat-square" alt="Version 1.7.1" />
     <img src="https://img.shields.io/badge/PWA-Offline_Ready-success.svg?style=flat-square" alt="Offline Ready" />
     <img src="https://img.shields.io/badge/Architecture-100%25_Client_Side-orange.svg?style=flat-square" alt="Client Side" />
     <img src="https://img.shields.io/badge/Hardware-Web_Serial_API-9cf.svg?style=flat-square" alt="Web Serial API" />
@@ -51,6 +51,10 @@ graph TD
 | 💾 **Saved** | Save frames and field notes to IndexedDB on the device; export to JSON, CSV, or TXT. |
 
 ---
+
+## 🩹 v1.7.1 (bug fix)
+
+`Uncaught TypeError: LP.faultHint is not a function` appeared when the new `app.js` ran against an **old `js/instrument.js`** (a half-updated cache or a partial upload — the function exists in v1.7.0 files). Fixes: (1) the service worker no longer overwrites precached files one by one in the background — a release is now swapped in as one complete cache; (2) `app.js` tolerates an out-of-date module instead of crashing; (3) a red “Some app files are out of date” bar with a **Refresh app files** button (unregisters the service worker, clears caches, reloads) appears if module versions are mixed. **If you still see the error after deploying:** upload *all* files, then open the site once and use *Refresh app files* (or DevTools → Application → Storage → *Clear site data*) and reload twice.
 
 ## 🧭 What's new in v1.7.0 / v1.6.0 (readable results + workflow guidance)
 
@@ -154,7 +158,7 @@ Everything uses relative paths, so it works from a repo sub-path or a custom dom
 - `.well-known/assetlinks.json` / `apple-app-site-association` are empty stubs (only needed if you later wrap the PWA as a Play Store TWA / iOS app).
 
 ## 🔄 Shipping updates
-1. Change files, bump `VERSION` in `service-worker.js` (currently `1.7.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
+1. Change files, bump `VERSION` in `service-worker.js` (currently `1.7.1`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
 2. Users who already installed the app see a **"Reload to update"** banner when online.
 
 ## 💻 Local development / tests

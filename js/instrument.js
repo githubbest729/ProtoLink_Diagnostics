@@ -45,6 +45,13 @@
     return { pct, level: mA < s.lo || mA > s.hi ? 'warn' : st.level === 'warn' ? 'warn' : 'good' };
   }
 
+  /** Plain-English next step for a fault reading (null when there is nothing to suggest). */
+  function faultHint(mA, mode) {
+    if (!(mA >= 0) || loopStatus(mA, mode).label !== 'Fault') return null;
+    if (mA < 3.6) return 'Hint: A reading this low usually means a broken wire, blown fuse, or lost 24V DC power supply to the instrument.';
+    return 'Hint: A reading this high usually means the transmitter has failed high or the loop wiring is shorted. Check the transmitter display/diagnostics and the field wiring.';
+  }
+
   /** What a Siemens analog input module reports (0…27648 = nominal range). type: '4-20' or '0-20' module setting. */
   function siemensRaw(mA, moduleType) {
     const s = span(moduleType);
@@ -62,5 +69,5 @@
     return pts.map((mA) => ({ mA, pct: pctOfSpan(mA, mode), volts: voltage(mA, ohms) }));
   }
 
-  PL.instrument = { span, loopToEU, euToLoop, pctOfSpan, loopStatus, gaugeState, siemensRaw, voltage, current, dropTable };
+  PL.instrument = { span, loopToEU, euToLoop, pctOfSpan, loopStatus, gaugeState, faultHint, siemensRaw, voltage, current, dropTable };
 })(typeof window !== 'undefined' ? window : globalThis);

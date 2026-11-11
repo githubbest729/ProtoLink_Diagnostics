@@ -127,6 +127,16 @@
     return Number(f.toPrecision(digits)).toString();
   };
 
+  /** Is a decoded float a believable field value?  'plausible' = |x| <= 10 000 (and not a denormal-scale speck),
+   *  'unlikely' = NaN / Inf / astronomically large or vanishingly small, 'maybe' = finite but large (10 000 … 1e9). */
+  function plausibility(x) {
+    if (!Number.isFinite(x)) return 'unlikely';
+    const a = Math.abs(x);
+    if (a === 0) return 'plausible';
+    if (a < 1e-6 || a > 1e9) return 'unlikely';
+    return a <= 10000 ? 'plausible' : 'maybe';
+  }
+
   /** Decode 4 or 8 raw bytes under one order. */
   function decodeBytes(raw, key) {
     const n = raw.length;
@@ -134,8 +144,8 @@
     const canon = applyOrder(raw, key);
     const dv = new DataView(new Uint8Array(canon).buffer);
     const hex = canon.map(hex2).join(' ');
-    if (n === 4) return { canon: hex, u: String(dv.getUint32(0)), i: String(dv.getInt32(0)), f: fmtNum(dv.getFloat32(0), 8) };
-    return { canon: hex, u: dv.getBigUint64(0).toString(), i: dv.getBigInt64(0).toString(), f: fmtNum(dv.getFloat64(0), 16) };
+    if (n === 4) return { canon: hex, u: String(dv.getUint32(0)), i: String(dv.getInt32(0)), f: fmtNum(dv.getFloat32(0), 8), fn: dv.getFloat32(0) };
+    return { canon: hex, u: dv.getBigUint64(0).toString(), i: dv.getBigInt64(0).toString(), f: fmtNum(dv.getFloat64(0), 16), fn: dv.getFloat64(0) };
   }
 
   /** Decode under all four orders. */
@@ -202,5 +212,5 @@
     return out;
   }
 
-  PL.convert = { TABLES, ORDERS, ENDIAN, parseModicon, toModicon, decode32, encode32, scale, num, orderIdx, applyOrder, orderLabel, decodeBytes, decodeAll, convertOrder, parseRaw, parseBig, encodeValue, wordsText };
+  PL.convert = { TABLES, ORDERS, ENDIAN, parseModicon, toModicon, decode32, encode32, scale, num, orderIdx, applyOrder, orderLabel, plausibility, decodeBytes, decodeAll, convertOrder, parseRaw, parseBig, encodeValue, wordsText };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -571,7 +571,7 @@
       recCell(d[e.key].fn)));
     /** "What this means" column: judges the float reading of each layout. */
     function recCell(f) {
-      const v = CV.plausibility(f);
+      const v = typeof CV.plausibility === 'function' ? CV.plausibility(f) : 'maybe';
       if (v === 'plausible') return el('td', { class: 'rec rec-ok' }, el('b', { text: 'Plausible Value' }));
       if (v === 'maybe') return el('td', { class: 'rec rec-maybe', text: 'Large value — check' });
       return el('td', { class: 'rec rec-bad', text: 'Likely Incorrect' });
@@ -632,6 +632,7 @@
     const rnd = (v, d) => String(Number(Number(v).toFixed(d)));
     const opts = () => ({ mode: $('#lp-mode').value, euLo: CV.num($('#lp-eulo').value), euHi: CV.num($('#lp-euhi').value) });
     const gauge = (mA) => {
+      if (typeof LP.gaugeState !== 'function') return;
       const g = $('#lp-gauge'), s = LP.gaugeState(mA, $('#lp-mode').value), lo = $('#lp-mode').value === '0-20' ? '0 mA' : '4 mA';
       g.className = 'gauge g-' + s.level; $('#lp-g-lo').textContent = lo;
       g.querySelector('i').style.setProperty('width', s.pct + '%');
@@ -656,8 +657,8 @@
       const rows = [['Span', rnd(pct, 2) + ' %'], ['Process value', rnd(LP.loopToEU(mA, o), 4) + ' ' + ($('#lp-unit').value || '')],
         ['S7 raw (module 4–20 mA)', String(LP.siemensRaw(mA, '4-20')) + '  (nominal 0…27648)'], ['S7 raw (module 0–20 mA)', String(LP.siemensRaw(mA, '0-20'))]];
       const dl = el('dl', { class: 'kv' }); rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', { text: r[1] })));
-      const lh = LP.faultHint(mA, o.mode);
-      out.append(dl, el('div', { class: 'verdict ' + (st.level === 'good' ? 'good' : st.level === 'warn' ? 'warn' : 'bad') }, el('span', { class: 'pill ' + st.level, role: 'status', text: st.label }), el('span', { text: st.text })));
+      const lh = typeof LP.faultHint === 'function' ? LP.faultHint(mA, o.mode) : null; // tolerate a stale js/instrument.js (see selfCheck)
+      out.append(dl, el('div', { class: 'verdict ' + (st.level === 'good' ? 'good' : st.level === 'warn' ? 'warn' : 'bad') }, el('span', { class: 'pill ' + st.level, role: 'status', text: st.label || { good: 'Normal', warn: 'Warning', bad: 'Fault' }[st.level] || '' }), el('span', { text: st.text })));
       if (lh) out.append(el('div', { class: 'tshoot', role: 'alert' }, el('b', { text: '🛠 Troubleshooting hint' }), el('p', { text: lh })));
       ohm('ma-sync');
     }
@@ -1018,6 +1019,24 @@
     const p = TP.logPresets.find((x) => x.id === 'dcom') || TP.logPresets[0];
     $('#log-input').value = p.text; $('#log-analyze').click(); toast('Loaded sample: ' + p.label);
   });
+
+  // ------------------------------------------------------------------ stale-files self-check
+  // If the page's scripts come from different releases (e.g. a half-updated cache or a partial upload), say so and offer a clean reset.
+  (function selfCheck() {
+    const need = { 'modbus.copyValues': PL.modbus && PL.modbus.copyValues, 'convert.plausibility': PL.convert && PL.convert.plausibility, 'instrument.gaugeState': PL.instrument && PL.instrument.gaugeState,
+      'instrument.faultHint': PL.instrument && PL.instrument.faultHint, 'exporter.toCsv': PL.exporter && PL.exporter.toCsv, 'templates.logPresets': PL.templates && PL.templates.logPresets };
+    const missing = Object.keys(need).filter((k) => !need[k]);
+    if (!missing.length) return;
+    const fix = async () => {
+      try { const regs = (navigator.serviceWorker && await navigator.serviceWorker.getRegistrations()) || []; await Promise.all(regs.map((r) => r.unregister())); } catch (e) { /* ignore */ }
+      try { if (window.caches) await Promise.all((await caches.keys()).map((k) => caches.delete(k))); } catch (e) { /* ignore */ }
+      location.reload();
+    };
+    const bar = el('div', { class: 'staleban', role: 'alert' }, el('span', { text: '⚠ Some app files are out of date (' + missing.join(', ') + ' missing). ' }),
+      el('button', { class: 'btn small', type: 'button', onclick: fix }, 'Refresh app files'));
+    document.body.prepend(bar);
+    console.warn('[ProtoLink] stale script files detected:', missing.join(', '));
+  })();
 
   // ------------------------------------------------------------------ init
   renderOpc();

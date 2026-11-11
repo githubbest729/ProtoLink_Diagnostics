@@ -4,7 +4,7 @@
  */
 'use strict';
 
-const VERSION = '1.7.0';
+const VERSION = '1.7.1';
 const BUILD = '__BUILD__';
 const CACHE = `protolink-v${VERSION}-${BUILD}`;
 
@@ -76,7 +76,7 @@ async function refresh(cache, request) {
 async function handleNavigate(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request, { ignoreSearch: true });
-  if (cached) { refresh(cache, request); return cached; }
+  if (cached) return cached; // precached files are frozen per VERSION: updates arrive as ONE new cache, never file-by-file
   const url = new URL(request.url);
   if (url.pathname.endsWith('/')) {
     const idx = await cache.match('index.html');
@@ -90,7 +90,7 @@ async function handleNavigate(request) {
 async function handleAsset(request) {
   const cache = await caches.open(CACHE);
   const cached = await cache.match(request, { ignoreSearch: true });
-  if (cached) { refresh(cache, request); return cached; }
+  if (cached) return cached; // (see handleNavigate) — mixing a new app.js with an old instrument.js caused `LP.faultHint is not a function`
   const net = await refresh(cache, request);
   return net || Response.error();
 }

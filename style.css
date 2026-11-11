@@ -290,3 +290,5 @@ details.tool[open] > summary { margin-bottom: 10px; }
 .demo-row { margin: 6px 0 0; font-size: .85rem; }
 .linkbtn { background: none; border: 0; padding: 4px 0; color: var(--cyan); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 32px; }
 .linkbtn:hover, .linkbtn:focus-visible { color: #7dd3fc; outline: none; }
+
+.staleban { position: sticky; top: 0; z-index: 60; display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: center; padding: 8px 12px; background: #5c1a17; color: #ffd8d4; border-bottom: 1px solid #8b2a25; font-size: .85rem; }

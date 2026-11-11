@@ -1,6 +1,6 @@
 {
   "name": "protolink-diagnostics",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Offline-capable Modbus frame analyzer, OPC DA/UA troubleshooter and log parser (PWA) for SCADA field engineers.",
   "private": true,
   "license": "MIT",

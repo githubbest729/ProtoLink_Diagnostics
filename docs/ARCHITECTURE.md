@@ -21,7 +21,7 @@
 | `js/tag-helper.js` | `PL.taghelper` — DBLoad CSV build/validate, iFIX references, header-mapped import rows. |
 | `js/export.js` | `PL.exporter` — `toCsv` / `toTxt` / `merge` for the Saved tab: BOM + CRLF, RFC-4180 quoting, `'` prefix against formula injection, chronological merge of frames, notes and logs. |
 | `js/db.js` | `PL.db` — IndexedDB wrapper (`frames`, `notes`) with localStorage → memory fallback. |
-| `service-worker.js` | Precache + cache-first/stale-while-revalidate, navigation fallback to `offline.html`, update via `SKIP_WAITING` message. |
+| `service-worker.js` | Precache + cache-first (frozen per version, no file-by-file refresh), navigation fallback to `offline.html`, update via `SKIP_WAITING` message. |
 | `sw-register.js` | Registers the SW, emits `pl:sw` events (`ready`, `update`, `error`) the UI shows as pills/banner. |
 | `manifest.webmanifest` | Install metadata, PNG + SVG icons (incl. maskable), shortcuts. |
 | `offline.html`, `404.html`, `privacy.html` | Fallback pages (404 is self-contained because GitHub Pages serves it at arbitrary paths). |
@@ -73,3 +73,5 @@ Recoverable read errors (framing, parity, overrun) re-acquire the reader; a `Net
 - **v1.3 sticky inputs:** `.stick-in` cards (`#mb-stick`, `#log-stick`) are `position: sticky`; on the Modbus tab their `top` is `--dock-top + --dock-h + 6px`, so the serial dock (now first in the tab) pins above them. `updateStickyOffsets()` also adds the pinned card's height to `scroll-padding-top`.
 - **Tooltips** are `span.tip[data-tip]` with `::after { content: attr(data-tip) }`; `app.js` only stops taps on a tip from toggling a parent `<summary>`/`<label>`.
 - **Toast:** `toast(msg, ms)` restarts a CSS slide-up animation, then adds `.out` (opacity fade) after `ms` and hides the element 450 ms later.
+- **v1.6/1.7 helpers:** `PL.convert.plausibility()` and the numeric `fn` field on `decodeBytes()` feed the Recommendation column; `PL.instrument.faultHint()` produces the loop hint. Input masks live in `app.js` (`MASK`, `attachMask`): they listen in the **capture** phase so each tool's own `input` handler already sees the cleaned value, and they re-position the caret after editing. Log error codes are rendered as `<a class="codelink" data-code>` inside the highlight `<mark>`; one delegated click handler on `#log-out` calls `gotoKb()`.
+- **v1.7.1 cache rule:** precached assets are served cache-first and are **never refreshed file-by-file**; new code arrives only when the service-worker file changes (VERSION / build stamp), which installs a complete new cache and then swaps. `selfCheck()` in `app.js` reports missing module functions (mixed releases) and can reset the SW + caches.
