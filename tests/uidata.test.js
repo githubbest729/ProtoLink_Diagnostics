@@ -100,4 +100,22 @@ t('orderLabel gives the byte-block letters for every layout (32- and 64-bit)', (
   assert.strictEqual(OL('CDAB', 8), 'GHEFCDAB'); assert.strictEqual(OL('BADC', 8), 'BADCFEHG'); assert.strictEqual(OL('DCBA', 8), 'HGFEDCBA');
 });
 
+t('plausibility(): human-sized floats are plausible, junk is not', () => {
+  const P = globalThis.PL.convert.plausibility;
+  [3.14, -490.56, 0, 9999.9, -10000, 0.001].forEach((v) => assert.strictEqual(P(v), 'plausible', String(v)));
+  [NaN, Infinity, -Infinity, -4.9502034e32, 1e-30, 3e38].forEach((v) => assert.strictEqual(P(v), 'unlikely', String(v)));
+  assert.strictEqual(P(25000), 'maybe'); assert.strictEqual(P(-5e6), 'maybe');
+});
+t('decodeAll exposes numeric floats; for 40 48 F5 C3 only the right layouts look plausible', () => {
+  const CV = globalThis.PL.convert, d = CV.decodeAll([0x40, 0x48, 0xf5, 0xc3]);
+  assert.ok(Math.abs(d.ABCD.fn - 3.14) < 1e-6);
+  assert.strictEqual(CV.plausibility(d.ABCD.fn), 'plausible'); assert.strictEqual(CV.plausibility(d.CDAB.fn), 'unlikely');
+  assert.ok(Number.isFinite(CV.decodeAll([0x40, 0x09, 0x1e, 0xb8, 0x51, 0xeb, 0x85, 0x1f]).ABCD.fn)); // 64-bit too
+});
+t('faultHint(): only fault readings get a hint, with the requested wording for < 3.6 mA', () => {
+  const H = (mA) => globalThis.PL.instrument.faultHint(mA, '4-20');
+  assert.strictEqual(H(3.2), 'Hint: A reading this low usually means a broken wire, blown fuse, or lost 24V DC power supply to the instrument.');
+  assert.ok(/too high|this high/.test(H(22))); assert.strictEqual(H(12), null); assert.strictEqual(H(3.7), null); assert.strictEqual(H(NaN), null);
+});
+
 console.log(`\n${n} ui-data test groups passed`);
