@@ -2,7 +2,7 @@
 // v1.2 helpers: copy-value extraction, CSV/TXT export, log presets.  Run: node tests/uidata.test.js
 const assert = require('assert');
 const path = require('path');
-['editor', 'validator', 'templates', 'export'].forEach((f) => require(path.join('..', 'js', f + '.js')));
+['editor', 'validator', 'templates', 'export', 'instrument'].forEach((f) => require(path.join('..', 'js', f + '.js')));
 const { modbus: MB, exporter: EX, templates: T, editor: ED } = globalThis.PL;
 
 let n = 0;
@@ -73,6 +73,16 @@ t('log presets: five presets, each triggers the highlight categories it advertis
   assert.ok(count(by.smc, 'ww') >= 3);
   // every hex code in the presets must be explained by the built-in table (so the Findings panel has an answer)
   T.logPresets.forEach((p) => (p.text.match(/\b0x[0-9A-Fa-f]{8}\b/g) || []).forEach((c) => assert.ok(T.hresults[c.toLowerCase()], p.id + ': unknown code ' + c)));
+});
+
+t('loopStatus returns the pill label for every band (4–20 and 0–20 mA)', () => {
+  const { instrument: LP } = globalThis.PL;
+  const lab = (mA, mode) => LP.loopStatus(mA, mode || '4-20').label;
+  assert.strictEqual(lab(12), 'Normal'); assert.strictEqual(lab(4), 'Normal'); assert.strictEqual(lab(3.9), 'Normal'); assert.strictEqual(lab(20.5), 'Normal');
+  assert.strictEqual(lab(3.7), 'Under-range'); assert.strictEqual(lab(20.8), 'Over-range');
+  assert.strictEqual(lab(3.5), 'Fault'); assert.strictEqual(lab(0), 'Fault'); assert.strictEqual(lab(21.5), 'Fault');
+  assert.strictEqual(lab(NaN), 'Invalid'); assert.strictEqual(lab(10, '0-20'), 'Normal'); assert.strictEqual(lab(21, '0-20'), 'Over-range');
+  assert.strictEqual(LP.loopStatus(12, '4-20').level, 'good'); assert.strictEqual(LP.loopStatus(3.7, '4-20').level, 'warn'); assert.strictEqual(LP.loopStatus(3.5, '4-20').level, 'bad');
 });
 
 console.log(`\n${n} ui-data test groups passed`);
