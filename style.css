@@ -251,3 +251,23 @@ details.tool[open] > summary { margin-bottom: 10px; }
 .tip { background: #0c2d48; border-color: #38bdf8; color: #7dd3fc; box-shadow: 0 0 0 1px rgba(56,189,248,.25); }
 .tip:hover, .tip:focus { background: #38bdf8; border-color: #38bdf8; color: #06202f; }
 .empty b { color: var(--amber); }
+
+/* ---------- v1.4: beginner aids in the Tools tab ---------- */
+.helper { display: block; margin-top: 4px; color: var(--muted); font-size: .78rem; line-height: 1.3; }
+.bytevis { margin: 10px 0 4px; padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: var(--r); }
+.bv-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.bv-tag { min-width: 5.2em; color: var(--muted); font-size: .8rem; }
+.bv-tag b { color: var(--text); font-family: var(--mono); }
+.bv-boxes { display: inline-flex; gap: 10px; flex-wrap: wrap; }
+.bv-word { display: inline-flex; gap: 2px; padding: 3px; border: 1px dashed var(--line); border-radius: 8px; }
+.bb { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 5px; font: 700 1rem var(--mono); color: #0b0f14; }
+.bb.b0 { background: #ffb000; } .bb.b1 { background: #f59e0b; } .bb.b2 { background: #38bdf8; } .bb.b3 { background: #0ea5e9; }
+.bb.b4 { background: #a78bfa; } .bb.b5 { background: #8b5cf6; } .bb.b6 { background: #2dd4bf; } .bb.b7 { background: #14b8a6; }
+.bv-arrow { margin: 4px 0 4px 5.8em; color: var(--muted); font: 600 .78rem var(--mono); }
+.bytevis .hint { margin: 8px 0 0; }
+.gauge { margin: 6px 0 10px; }
+.gauge-track { height: 14px; background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.gauge-track > i { display: block; height: 100%; width: 0; border-radius: 999px; background: var(--muted); transition: width .25s ease, background-color .25s ease; }
+.gauge.g-good .gauge-track > i { background: #2ea043; } .gauge.g-warn .gauge-track > i { background: #f5a524; } .gauge.g-bad .gauge-track > i { background: #e5484d; }
+.gauge-scale { display: flex; justify-content: space-between; margin-top: 3px; color: var(--muted); font: .75rem var(--mono); }
+@media (prefers-reduced-motion: reduce) { .gauge-track > i { transition: none; } }

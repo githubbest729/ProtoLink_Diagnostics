@@ -4,7 +4,7 @@
   <p><em>Offline-capable PWA for SCADA field engineers: Modbus frame analyzer, OPC DA/UA troubleshooter (Wonderware-focused), and log snippet parser.</em></p>
   
   <p>
-    <img src="https://img.shields.io/badge/version-1.3.1-blue.svg?style=flat-square" alt="Version 1.3.1" />
+    <img src="https://img.shields.io/badge/version-1.4.0-blue.svg?style=flat-square" alt="Version 1.4.0" />
     <img src="https://img.shields.io/badge/PWA-Offline_Ready-success.svg?style=flat-square" alt="Offline Ready" />
     <img src="https://img.shields.io/badge/Architecture-100%25_Client_Side-orange.svg?style=flat-square" alt="Client Side" />
     <img src="https://img.shields.io/badge/Hardware-Web_Serial_API-9cf.svg?style=flat-square" alt="Web Serial API" />
@@ -51,6 +51,13 @@ graph TD
 | 💾 **Saved** | Save frames and field notes to IndexedDB on the device; export to JSON, CSV, or TXT. |
 
 ---
+
+## 🎓 What's new in v1.4.0 (beginner aids in the Tools tab)
+
+1. **Byte blocks in the Endianness tool:** pick From / To layouts and see coloured byte boxes reorder (e.g. `ABCD` → `CDAB` shows `[C][D] [A][B]`). Boxes joined by a dashed border are one 16-bit register; works for 32- and 64-bit.
+2. **Loop gauge** under the mA field: 0 % at 4 mA to 100 % at 20 mA; **green** inside 4–20 mA, **yellow** outside it (under/over-range), **red** at fault level (below 3.6 mA or above 21 mA). Note: the status pill follows NAMUR-style bands, so 3.8–4 mA and 20–20.5 mA show a yellow gauge with a "Normal" pill and an explanation.
+3. **Modicon table helper text** under the *Table* dropdown, e.g. “(Holding Registers - Read/Write)”.
+4. **“e.g., …” placeholders** on the CRC, Linear Scaling, Modicon and Endianness inputs (they appear when a field is cleared).
 
 ## 🎨 What's new in v1.3.1 / v1.3.0
 
@@ -130,7 +137,7 @@ Everything uses relative paths, so it works from a repo sub-path or a custom dom
 - `.well-known/assetlinks.json` / `apple-app-site-association` are empty stubs (only needed if you later wrap the PWA as a Play Store TWA / iOS app).
 
 ## 🔄 Shipping updates
-1. Change files, bump `VERSION` in `service-worker.js` (currently `1.3.1`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
+1. Change files, bump `VERSION` in `service-worker.js` (currently `1.4.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
 2. Users who already installed the app see a **"Reload to update"** banner when online.
 
 ## 💻 Local development / tests

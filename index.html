@@ -264,12 +264,12 @@
     </div>
     <details class="card tool" id="tool-modicon" data-tool="modicon"><summary><h2 class="inline">Modicon Address ⇄ Protocol Offset</h2></summary>
       <label for="ad-input" class="lbl">Modicon reference (40001 or 400001)</label>
-      <input id="ad-input" type="text" inputmode="numeric" autocomplete="off" placeholder="40001">
+      <input id="ad-input" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g., 40001">
       <div id="ad-out" aria-live="polite"></div>
       <hr>
       <div class="grid">
-        <label class="sel"><span>Table</span><select id="ad2-table"><option value="4">4x Holding</option><option value="3">3x Input reg</option><option value="0">0x Coil</option><option value="1">1x Discrete in</option></select></label>
-        <label class="sel"><span>Protocol offset (dec / 0x…)</span><input id="ad2-offset" type="text" placeholder="0x0064"></label>
+        <label class="sel"><span>Table</span><select id="ad2-table" aria-describedby="ad2-help"><option value="4">4x Holding</option><option value="3">3x Input reg</option><option value="0">0x Coil</option><option value="1">1x Discrete in</option></select><small class="helper" id="ad2-help"></small></label>
+        <label class="sel"><span>Protocol offset (dec / 0x…)</span><input id="ad2-offset" type="text" placeholder="e.g., 0x0064 or 100"></label>
         <label class="sel"><span>Format</span><select id="ad2-digits"><option value="5">5-digit</option><option value="6">6-digit</option></select></label>
       </div>
       <div id="ad2-out" aria-live="polite"></div>
@@ -289,11 +289,12 @@
         <label class="sel"><span>From</span><select id="en-from"></select></label>
         <label class="sel"><span>To</span><select id="en-to"></select></label>
       </div>
+      <div id="en-vis" class="bytevis" aria-live="polite"></div>
       <div id="en-conv" aria-live="polite"></div>
       <hr>
       <h3 class="subh">Encode a value (what to write)</h3>
       <div class="grid">
-        <label class="sel"><span>Value</span><input id="en-val" type="text" autocomplete="off" placeholder="3.14"></label>
+        <label class="sel"><span>Value</span><input id="en-val" type="text" autocomplete="off" placeholder="e.g., 3.14"></label>
         <label class="sel"><span>Type</span><select id="en-type"><option value="f">Float (IEEE 754)</option><option value="i">Signed integer</option><option value="u">Unsigned integer</option></select></label>
       </div>
       <div id="en-enc" aria-live="polite"></div>
@@ -318,6 +319,10 @@
       <div class="grid">
         <label class="sel"><span>Loop current (mA)</span><input id="lp-ma" type="text" inputmode="decimal" value="12"></label>
         <label class="sel"><span>Process value (<span id="lp-unit-lbl">bar</span>)</span><input id="lp-eu" type="text" inputmode="decimal" value="50"></label>
+      </div>
+      <div class="gauge" id="lp-gauge" role="meter" aria-label="Loop current as % of span" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="gauge-track"><i></i></div>
+        <div class="gauge-scale"><span id="lp-g-lo">4 mA</span><span id="lp-g-pct">0 %</span><span id="lp-g-hi">20 mA</span></div>
       </div>
       <div id="lp-out" aria-live="polite"></div>
       <hr>
@@ -349,7 +354,7 @@
 
     <details class="card tool" id="tool-crc" data-tool="crc"><summary><h2 class="inline">CRC-16 / LRC Calculator</h2></summary>
       <label for="ck-input" class="lbl">Hex bytes WITHOUT checksum</label>
-      <input id="ck-input" type="text" autocomplete="off" spellcheck="false" placeholder="01 03 00 00 00 0A">
+      <input id="ck-input" type="text" autocomplete="off" spellcheck="false" placeholder="e.g., 01 03 00 00 00 0A">
       <div id="ck-out" aria-live="polite"></div>
     </details>
 
@@ -361,11 +366,11 @@
         <button class="btn small" type="button" data-preset="0,4095,0,100">12-bit → 0-100</button>
       </div>
       <div class="grid">
-        <label class="sel"><span>Raw value</span><input id="sc-raw" type="text" value="13824"></label>
-        <label class="sel"><span>Raw min</span><input id="sc-rmin" type="text" value="0"></label>
-        <label class="sel"><span>Raw max</span><input id="sc-rmax" type="text" value="27648"></label>
-        <label class="sel"><span>EU min</span><input id="sc-emin" type="text" value="0"></label>
-        <label class="sel"><span>EU max</span><input id="sc-emax" type="text" value="100"></label>
+        <label class="sel"><span>Raw value</span><input id="sc-raw" type="text" value="13824" placeholder="e.g., 13824"></label>
+        <label class="sel"><span>Raw min</span><input id="sc-rmin" type="text" value="0" placeholder="e.g., 0"></label>
+        <label class="sel"><span>Raw max</span><input id="sc-rmax" type="text" value="27648" placeholder="e.g., 27648"></label>
+        <label class="sel"><span>EU min</span><input id="sc-emin" type="text" value="0" placeholder="e.g., 0"></label>
+        <label class="sel"><span>EU max</span><input id="sc-emax" type="text" value="100" placeholder="e.g., 100"></label>
       </div>
       <div id="sc-out" aria-live="polite"></div>
     </details>
@@ -397,7 +402,7 @@
 </main>
 
 <footer class="foot">
-  <span>ProtoLink Diagnostics v1.3.1</span> · <a href="privacy.html">Privacy</a> ·
+  <span>ProtoLink Diagnostics v1.4.0</span> · <a href="privacy.html">Privacy</a> ·
   <span>100% client-side. Verify critical settings against vendor documentation.</span>
 </footer>
 
