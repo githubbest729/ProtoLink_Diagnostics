@@ -274,3 +274,19 @@ details.tool[open] > summary { margin-bottom: 10px; }
 
 /* ---------- v1.5: plain-English purpose line under each tool title ---------- */
 .tool-purpose-text { margin: 2px 0 14px; color: var(--muted); font-size: .85rem; font-style: italic; line-height: 1.45; }
+
+/* ---------- v1.6 / v1.7: results formatting + workflow guidance ---------- */
+.proptbl th[scope=row] { color: var(--muted); font-weight: 600; font-size: .8rem; text-transform: none; letter-spacing: 0; white-space: nowrap; width: 42%; }
+.proptbl td { font-family: var(--mono); }
+.proptbl .cv { margin-right: 6px; overflow-wrap: anywhere; }
+.rec { white-space: nowrap; font-size: .8rem; }
+.rec-ok b { color: #3fb950; } .rec-bad { color: var(--muted); } .rec-maybe { color: var(--warn); }
+.copyrow { margin-top: 8px; }
+.codelink { color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; cursor: pointer; }
+.codelink:hover, .codelink:focus-visible { text-decoration-style: solid; background: rgba(255,255,255,.12); outline: none; border-radius: 3px; }
+.tshoot { margin: 0 0 14px; padding: 10px 14px; background: #2b2209; border: 1px solid #5c4614; border-left: 4px solid #f2cc60; border-radius: var(--r); color: #f2cc60; }
+.tshoot p { margin: 4px 0 0; color: #f5e1a0; font-size: .88rem; }
+.fieldwarn { display: block; margin-top: 4px; color: #ff7b72; font-size: .78rem; font-weight: 600; }
+.demo-row { margin: 6px 0 0; font-size: .85rem; }
+.linkbtn { background: none; border: 0; padding: 4px 0; color: var(--cyan); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 32px; }
+.linkbtn:hover, .linkbtn:focus-visible { color: #7dd3fc; outline: none; }

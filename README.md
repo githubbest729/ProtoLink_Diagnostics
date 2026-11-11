@@ -4,7 +4,7 @@
   <p><em>Offline-capable PWA for SCADA field engineers: Modbus frame analyzer, OPC DA/UA troubleshooter (Wonderware-focused), and log snippet parser.</em></p>
   
   <p>
-    <img src="https://img.shields.io/badge/version-1.5.0-blue.svg?style=flat-square" alt="Version 1.5.0" />
+    <img src="https://img.shields.io/badge/version-1.7.0-blue.svg?style=flat-square" alt="Version 1.7.0" />
     <img src="https://img.shields.io/badge/PWA-Offline_Ready-success.svg?style=flat-square" alt="Offline Ready" />
     <img src="https://img.shields.io/badge/Architecture-100%25_Client_Side-orange.svg?style=flat-square" alt="Client Side" />
     <img src="https://img.shields.io/badge/Hardware-Web_Serial_API-9cf.svg?style=flat-square" alt="Web Serial API" />
@@ -52,7 +52,20 @@ graph TD
 
 ---
 
-## 💬 What's new in v1.5.0
+## 🧭 What's new in v1.7.0 / v1.6.0 (readable results + workflow guidance)
+
+**v1.6.0 – results you can read at a glance**
+1. **Modicon results as a Property / Value table** (Table Type, Decimal Offset, Hex Offset, Read Command, Write Command, Other format) with a ⧉ copy icon on every value; the reverse direction (offset → Modicon) uses the same table.
+2. **Endianness “Recommendation” column:** green **Plausible Value** for floats within ±10 000, grey **Likely Incorrect** for NaN / Inf / astronomically large or vanishingly small values, and an amber “Large value — check” for finite values between 10 000 and 1e9. Several rows can be plausible: pick the one that matches what the instrument should read.
+3. **Copy Bytes (Hex)** and **Copy Registers (16-bit)** buttons under the Convert-layout result; every copy now shows the “Copied!” toast.
+
+**v1.7.0 – guidance and error prevention**
+4. **Clickable error codes in the Log Parser:** a highlighted code such as `0x80070005` is a link; clicking it switches to the OPC tab, fills the search box and opens the matching articles (up to 6).
+5. **Troubleshooting hints** (yellow box): after a bad CRC in the Modbus analyzer (a similar wording for a bad ASCII LRC), and in the 4–20 mA calculator for fault readings (below 3.6 mA: broken wire / blown fuse / lost 24 V; above 21 mA: failed-high transmitter or shorted wiring).
+6. **Gentle input masks** on the Modbus frame box, the CRC box and the two IP boxes: hex boxes keep only `0-9 A-F` (upper-cased), turn the letter **O into 0**, drop `0x` prefixes, turn `, ; . - _ /` into spaces and remove everything else (G–Z, symbols); a leading `:` is kept so Modbus ASCII frames still work. IP boxes keep digits, `.` and `/` (the “address + mask” box also keeps one space, otherwise `10.0.0.5 255.255.255.0` could not be typed). A red “Invalid character removed” note flashes for 2 s. The cursor stays where you were typing. Pasting goes through the same filter; samples loaded by the app bypass it.
+7. **“First time? Click here to load a sample.”** under the Modbus and Log inputs: loads a Modbus request with a deliberately wrong CRC, or the DCOM-error sample log, and analyses it straight away.
+
+## 💬 What was added in v1.5.0
 
 Every tool in the Tools tab now has a short, plain-English “what is this for?” line (`.tool-purpose-text`) right under its title, for beginners and students.
 
@@ -141,7 +154,7 @@ Everything uses relative paths, so it works from a repo sub-path or a custom dom
 - `.well-known/assetlinks.json` / `apple-app-site-association` are empty stubs (only needed if you later wrap the PWA as a Play Store TWA / iOS app).
 
 ## 🔄 Shipping updates
-1. Change files, bump `VERSION` in `service-worker.js` (currently `1.5.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
+1. Change files, bump `VERSION` in `service-worker.js` (currently `1.7.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
 2. Users who already installed the app see a **"Reload to update"** banner when online.
 
 ## 💻 Local development / tests

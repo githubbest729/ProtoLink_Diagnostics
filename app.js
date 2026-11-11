@@ -45,7 +45,7 @@
     toastTimer = setTimeout(() => { t.classList.add('out'); toastTimer2 = setTimeout(() => { t.hidden = true; t.classList.remove('out'); }, 450); }, ms || 2600);
   }
   const EXPORTED = '✅ File exported to Downloads';
-  const copyBtn = (text, label) => el('button', { class: 'btn small', type: 'button', onclick: async () => { toast((await ED.copy(text)) ? 'Copied' : 'Copy failed — select and copy manually'); } }, label || 'Copy');
+  const copyBtn = (text, label) => el('button', { class: 'btn small', type: 'button', onclick: async () => { toast((await ED.copy(text)) ? 'Copied!' : 'Copy failed — select and copy manually'); } }, label || 'Copy');
 
   // One-click copy icon: copies a clean plain value (no labels/units) so it can be pasted straight into a tag dialog.
   const SHORT = { offset: 'off', Modicon: '4x', unsigned: 'u16', signed: 'i16', hex: 'hex', value: '' };
@@ -55,7 +55,7 @@
     b.addEventListener('click', async (e) => {
       e.stopPropagation();
       const ok = await ED.copy(String(value));
-      toast(ok ? 'Copied ' + value : 'Copy failed — select and copy manually');
+      toast(ok ? 'Copied! ' + value : 'Copy failed — select and copy manually');
       if (ok) { b.classList.add('done'); icon.textContent = '✓'; setTimeout(() => { b.classList.remove('done'); icon.textContent = '⧉'; }, 1200); }
     });
     return b;
@@ -118,6 +118,14 @@
   const mb = { last: null };
   TP.frames.forEach((f, i) => $('#mb-sample').append(el('option', { value: String(i), text: f.label })));
 
+  /** "Troubleshooting Hints" box: only built when the checksum failed. */
+  function crcHint(res) {
+    if (!res.checksum || res.checksum.ok || res.checksum.type === 'none') return null;
+    const txt = res.checksum.type === 'CRC-16'
+      ? 'Hint: A bad CRC usually means electrical noise, a loose wire, or a baud rate mismatch. Check your cable shielding and COM port settings.'
+      : 'Hint: A bad LRC usually means a corrupted or incomplete ASCII frame — often noise, a loose wire or mismatched serial settings. Check your cable and COM port settings.';
+    return el('div', { class: 'tshoot', role: 'alert' }, el('b', { text: '🛠 Troubleshooting hint' }), el('p', { text: txt }));
+  }
   function renderAnalysis(res, rawHex) {
     const out = $('#mb-out');
     out.replaceChildren();
@@ -166,6 +174,7 @@
     fc.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
       el('thead', null, el('tr', null, ['Off', 'Bytes', 'Field', 'Decoded'].map((h) => el('th', { text: h })))), tb)));
     out.append(fc);
+    const hint = crcHint(res); if (hint) out.append(hint);
 
     const regs = res.pdu && res.pdu.registers;
     if (regs && regs.length) {
@@ -283,7 +292,7 @@
   });
   $('#opc-list').addEventListener('toggle', syncOpcToggle, true);
 
-  function renderOpc(openId) {
+  function renderOpc(openId, openAll) {
     const q = $('#opc-search').value.trim().toLowerCase();
     const terms = q.split(/\s+/).filter(Boolean);
     const list = $('#opc-list');
@@ -298,7 +307,7 @@
     note.textContent = 'iFIX steps are field checklists: menu names, file locations and network ports differ between iFIX / Proficy versions — confirm in the product documentation for the version on site.';
     if (!hits.length) list.append(el('div', { class: 'card' }, el('p', { text: 'No matches. Try a shorter term, an error code such as 0x80070005, or clear the filter.' })));
     hits.forEach((k) => {
-      const d = el('details', { class: 'kb', id: 'kb-' + k.id, open: openId === k.id || (terms.length > 0 && hits.length <= 2) });
+      const d = el('details', { class: 'kb', id: 'kb-' + k.id, open: openId === k.id || (openAll && hits.length <= 6) || (terms.length > 0 && hits.length <= 2) });
       d.append(el('summary', null, el('b', { text: k.title }), el('span', { class: 'tag', text: { Both: 'DA+UA', DA: 'OPC DA', UA: 'OPC UA', iFIX: 'GE iFIX' }[k.proto] || k.proto }), k.ww.length ? el('span', { class: 'tag ww', text: 'Wonderware' }) : null));
       const body = el('div', { class: 'kbbody' });
       if (k.codes.length) body.append(el('div', { class: 'chips' }, k.codes.map((c) => el('span', { class: 'tag code', text: c }))));
@@ -312,10 +321,16 @@
     if (openId) { const t = $('#kb-' + openId); if (t) t.scrollIntoView({ block: 'start' }); }
   }
   $('#opc-search').addEventListener('input', debounce(() => renderOpc(), 120));
+  $('#log-out').addEventListener('click', (e) => {
+    const l = e.target.closest && e.target.closest('a.codelink'); if (!l) return;
+    e.preventDefault(); gotoKb(null, l.dataset.code); window.scrollTo(0, 0);
+    toast('Showing OPC help for ' + l.dataset.code);
+  });
   function gotoKb(id, term) {
     opc.filter = 'All'; $$('#opc-chips .fchip').forEach((x) => x.setAttribute('aria-pressed', x.dataset.f === 'All' ? 'true' : 'false'));
     $('#opc-search').value = term || '';
-    showTab('opc', true); renderOpc(id);
+    showTab('opc', true); renderOpc(id, !!term && !id);
+    if (term && !id) { const f = $('#opc-list details[open]'); if (f) f.scrollIntoView({ block: 'start' }); }
   }
 
   // Quality decoder
@@ -385,7 +400,12 @@
     found.forEach((f) => { if (!acc.some((a) => f.s < a.e && f.e > a.s)) acc.push(f); });
     acc.sort((a, b) => a.s - b.s);
     let html = '', pos = 0;
-    acc.forEach((a) => { html += esc(line.slice(pos, a.s)) + '<mark class="' + a.r.cls + '" title="' + esc(a.r.label) + '">' + esc(line.slice(a.s, a.e)) + '</mark>'; pos = a.e; });
+    acc.forEach((a) => {
+      const txt = esc(line.slice(a.s, a.e));
+      // error codes become links into the OPC troubleshooter (handled by one delegated click listener)
+      const inner = a.r.id === 'code' ? '<a href="#opc" class="codelink" data-code="' + txt + '" title="Look up ' + txt + ' in the OPC troubleshooter">' + txt + '</a>' : txt;
+      html += esc(line.slice(pos, a.s)) + '<mark class="' + a.r.cls + '" title="' + esc(a.r.label) + '">' + inner + '</mark>'; pos = a.e;
+    });
     html += esc(line.slice(pos));
     return { html, acc };
   }
@@ -489,19 +509,31 @@
     rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', null, el('span', { text: r[1] }), cpy(r[2] === undefined ? r[1] : r[2], r[0]))));
     t.append(dl);
   }
+  /** Property / Value table (same look as the Endianness table); each value keeps its one-click copy icon. */
+  function propTable(target, rows, err) {
+    const t = $(target); t.replaceChildren();
+    if (err) { t.append(el('p', { class: 'err', text: '✖ ' + err })); return; }
+    t.append(el('div', { class: 'tablewrap' }, el('table', { class: 'tbl proptbl' },
+      el('thead', null, el('tr', null, el('th', { text: 'Property' }), el('th', { text: 'Value' }))),
+      el('tbody', null, rows.map((r) => el('tr', null, el('th', { scope: 'row', text: r[0] }), el('td', null, el('span', { class: 'cv', text: r[1] }), cpy(r[2] === undefined ? r[1] : r[2], r[0]))))))));
+  }
   $('#ad-input').addEventListener('input', debounce(() => {
     const s = $('#ad-input').value.trim(); if (!s) { $('#ad-out').replaceChildren(); return; }
     const r = CV.parseModicon(s);
-    if (r.error) return kvOut('#ad-out', [], r.error);
-    kvOut('#ad-out', [['Table', r.name], ['Protocol offset (dec)', String(r.offset)], ['Protocol offset (hex)', r.hex], ['Read FC', r.read], ['Write FC', r.write], ['Other format', (CV.toModicon(r.table, r.offset, r.digits === 5 ? 6 : 5).text || 'n/a')]]);
+    if (r.error) return propTable('#ad-out', [], r.error);
+    propTable('#ad-out', [['Table Type', r.name], ['Decimal Offset', String(r.offset)], ['Hex Offset', r.hex], ['Read Command', r.read], ['Write Command', r.write], ['Other format', (CV.toModicon(r.table, r.offset, r.digits === 5 ? 6 : 5).text || 'n/a')]]);
   }, 120));
   const ad2 = debounce(() => {
     const s = $('#ad2-offset').value.trim(); if (!s) { $('#ad2-out').replaceChildren(); return; }
     const off = CV.num(s);
     const r = CV.toModicon(Number($('#ad2-table').value), off, Number($('#ad2-digits').value));
-    if (r.error) return kvOut('#ad2-out', [], r.error);
-    kvOut('#ad2-out', [['Modicon', r.text], ['Offset (dec)', String(off)], ['Offset (hex)', '0x' + hex4(off)]]);
+    if (r.error) return propTable('#ad2-out', [], r.error);
+    const tb = CV.TABLES[Number($('#ad2-table').value)];
+    propTable('#ad2-out', [['Modicon Address', r.text], ['Table Type', tb.name], ['Decimal Offset', String(off)], ['Hex Offset', '0x' + hex4(off)], ['Read Command', tb.read], ['Write Command', tb.write]]);
   }, 120);
+  const TBL_HELP = { 0: '(Coils - Read/Write)', 1: '(Discrete Inputs - Read Only)', 3: '(Input Registers - Read Only)', 4: '(Holding Registers - Read/Write)' };
+  const tblHelp = () => { $('#ad2-help').textContent = TBL_HELP[$('#ad2-table').value] || ''; };
+  $('#ad2-table').addEventListener('change', tblHelp); tblHelp();
   ['#ad2-offset', '#ad2-table', '#ad2-digits'].forEach((id) => { $(id).addEventListener('input', ad2); $(id).addEventListener('change', ad2); });
 
   $('#ck-input').addEventListener('input', debounce(() => {
@@ -535,12 +567,33 @@
     const rowsOf = (d, w) => EN.map((e) => el('tr', null,
       el('td', null, el('b', { text: d[e.key].label }), el('div', { class: 'muted', text: e.name + ' · ' + e.note })),
       mcell(d[e.key].canon, d[e.key].canon, e.key + ' bytes'), mcell(d[e.key].f, d[e.key].f, e.key + ' float'),
-      mcell(d[e.key].i, d[e.key].i, e.key + ' signed integer'), mcell(d[e.key].u, d[e.key].u, e.key + ' unsigned integer')));
+      mcell(d[e.key].i, d[e.key].i, e.key + ' signed integer'), mcell(d[e.key].u, d[e.key].u, e.key + ' unsigned integer'),
+      recCell(d[e.key].fn)));
+    /** "What this means" column: judges the float reading of each layout. */
+    function recCell(f) {
+      const v = CV.plausibility(f);
+      if (v === 'plausible') return el('td', { class: 'rec rec-ok' }, el('b', { text: 'Plausible Value' }));
+      if (v === 'maybe') return el('td', { class: 'rec rec-maybe', text: 'Large value — check' });
+      return el('td', { class: 'rec rec-bad', text: 'Likely Incorrect' });
+    }
+    /** Byte-block picture of the two layouts. Letter A = most significant byte; boxes are shown in the order the bytes arrive. */
+    function drawVis() {
+      const host = $('#en-vis'), n = Number($('#en-width').value) / 8;
+      const row = (tag, key) => {
+        const letters = CV.orderLabel(key, n).split(''), words = [];
+        for (let i = 0; i < letters.length; i += 2) words.push(letters.slice(i, i + 2));
+        return el('div', { class: 'bv-row' }, el('span', { class: 'bv-tag' }, tag + ' ', el('b', { text: key })),
+          el('span', { class: 'bv-boxes' }, words.map((wd) => el('span', { class: 'bv-word' }, wd.map((L) => el('b', { class: 'bb b' + 'ABCDEFGH'.indexOf(L), text: L }))))));
+      };
+      host.replaceChildren(row('From', $('#en-from').value), el('div', { class: 'bv-arrow', 'aria-hidden': 'true', text: '↓ reorder' }), row('To', $('#en-to').value),
+        el('p', { class: 'hint', text: 'Each box is one byte as it arrives (left → right). A = most significant byte' + (n === 8 ? ', H = least' : ', D = least') + '. Boxes joined together form one 16-bit register.' }));
+    }
     function run() {
       const out = $('#en-out'), conv = $('#en-conv'), enc = $('#en-enc');
+      drawVis();
       out.replaceChildren(); conv.replaceChildren(); enc.replaceChildren();
       const w = Number($('#en-width').value), mode = $('#en-mode').value;
-      $('#en-in').placeholder = mode === 'regs' ? (w === 32 ? '0x4048 0xF5C3' : '0x4009 0x1EB8 0x51EB 0x851F') : (w === 32 ? '40 48 F5 C3' : '40 09 1E B8 51 EB 85 1F');
+      $('#en-in').placeholder = 'e.g., ' + (mode === 'regs' ? (w === 32 ? '0x4048 0xF5C3' : '0x4009 0x1EB8 0x51EB 0x851F') : (w === 32 ? '40 48 F5 C3' : '40 09 1E B8 51 EB 85 1F'));
       if ($('#en-in').value.trim()) {
         const r = CV.parseRaw($('#en-in').value, mode, w);
         if (r.error) out.append(el('p', { class: 'err', text: '✖ ' + r.error }));
@@ -548,14 +601,14 @@
           const d = CV.decodeAll(r.bytes);
           out.append(el('p', { class: 'hint', text: 'Received bytes: ' + ED.formatHex(r.bytes) + '  ·  pick the row with a plausible value.' }),
             el('div', { class: 'tablewrap' }, el('table', { class: 'tbl' },
-              el('thead', null, el('tr', null, ['Layout', 'Value bytes (big-endian)', 'Float' + w, 'Int' + w, 'UInt' + w].map((h) => el('th', { text: h })))),
+              el('thead', null, el('tr', null, ['Layout', 'Value bytes (big-endian)', 'Float' + w, 'Int' + w, 'UInt' + w, 'Recommendation'].map((h) => el('th', { text: h })))),
               el('tbody', null, rowsOf(d, w)))));
           const from = $('#en-from').value, to = $('#en-to').value;
           const cb = CV.convertOrder(r.bytes, from, to);
           conv.append(el('dl', { class: 'kv' },
             el('dt', { text: 'Bytes' }), el('dd', { text: ED.formatHex(cb) }),
             el('dt', { text: 'Registers' }), el('dd', { text: CV.wordsText(cb) })),
-          copyBtn(ED.formatHex(cb), 'Copy bytes'), ' ', copyBtn(CV.wordsText(cb), 'Copy registers'));
+          el('div', { class: 'row copyrow' }, copyBtn(ED.formatHex(cb), 'Copy Bytes (Hex)'), copyBtn(CV.wordsText(cb), 'Copy Registers (16-bit)')));
         }
       }
       const v = $('#en-val').value.trim();
@@ -578,24 +631,34 @@
     const LP = PL.instrument;
     const rnd = (v, d) => String(Number(Number(v).toFixed(d)));
     const opts = () => ({ mode: $('#lp-mode').value, euLo: CV.num($('#lp-eulo').value), euHi: CV.num($('#lp-euhi').value) });
+    const gauge = (mA) => {
+      const g = $('#lp-gauge'), s = LP.gaugeState(mA, $('#lp-mode').value), lo = $('#lp-mode').value === '0-20' ? '0 mA' : '4 mA';
+      g.className = 'gauge g-' + s.level; $('#lp-g-lo').textContent = lo;
+      g.querySelector('i').style.setProperty('width', s.pct + '%');
+      g.setAttribute('aria-valuenow', String(Math.round(s.pct)));
+      $('#lp-g-pct').textContent = s.level === 'none' ? '—' : rnd(mA, 2) + ' mA · ' + Math.round(s.pct) + ' %';
+    };
     function lp(src) {
       const o = opts(), out = $('#lp-out');
       $('#lp-unit-lbl').textContent = $('#lp-unit').value || 'EU';
       out.replaceChildren();
-      if (Number.isNaN(o.euLo) || Number.isNaN(o.euHi) || o.euLo === o.euHi) { out.append(el('p', { class: 'err', text: '✖ Enter two different numbers for the process range.' })); return; }
+      if (Number.isNaN(o.euLo) || Number.isNaN(o.euHi) || o.euLo === o.euHi) { gauge(NaN); out.append(el('p', { class: 'err', text: '✖ Enter two different numbers for the process range.' })); return; }
       let mA;
       if (src === 'eu') mA = LP.euToLoop(CV.num($('#lp-eu').value), o);
       else if (src === 'slider') mA = Number($('#lp-slider').value);
       else mA = CV.num($('#lp-ma').value);
-      if (!Number.isFinite(mA) || mA < 0 || mA > 40) { out.append(el('p', { class: 'err', text: '✖ Enter a loop current of 0–40 mA (or a process value that maps into it).' })); return; }
+      if (!Number.isFinite(mA) || mA < 0 || mA > 40) { gauge(NaN); out.append(el('p', { class: 'err', text: '✖ Enter a loop current of 0–40 mA (or a process value that maps into it).' })); return; }
       if (src !== 'ma') $('#lp-ma').value = rnd(mA, 3);
       if (src !== 'slider') $('#lp-slider').value = String(Math.min(24, mA));
       if (src !== 'eu') $('#lp-eu').value = rnd(LP.loopToEU(mA, o), 4);
       const st = LP.loopStatus(mA, o.mode), pct = LP.pctOfSpan(mA, o.mode);
+      gauge(mA);
       const rows = [['Span', rnd(pct, 2) + ' %'], ['Process value', rnd(LP.loopToEU(mA, o), 4) + ' ' + ($('#lp-unit').value || '')],
         ['S7 raw (module 4–20 mA)', String(LP.siemensRaw(mA, '4-20')) + '  (nominal 0…27648)'], ['S7 raw (module 0–20 mA)', String(LP.siemensRaw(mA, '0-20'))]];
       const dl = el('dl', { class: 'kv' }); rows.forEach((r) => dl.append(el('dt', { text: r[0] }), el('dd', { text: r[1] })));
+      const lh = LP.faultHint(mA, o.mode);
       out.append(dl, el('div', { class: 'verdict ' + (st.level === 'good' ? 'good' : st.level === 'warn' ? 'warn' : 'bad') }, el('span', { class: 'pill ' + st.level, role: 'status', text: st.label }), el('span', { text: st.text })));
+      if (lh) out.append(el('div', { class: 'tshoot', role: 'alert' }, el('b', { text: '🛠 Troubleshooting hint' }), el('p', { text: lh })));
       ohm('ma-sync');
     }
     function ohm(src) {
@@ -902,6 +965,59 @@
   window.addEventListener('hashchange', updateStickyOffsets);
   document.querySelectorAll('.stick-in').forEach((n) => window.ResizeObserver && new ResizeObserver(updateStickyOffsets).observe(n));
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('.tip')) { e.preventDefault(); e.target.closest('.tip').focus(); } });
+
+  // ------------------------------------------------------------------ gentle input masks (hex + IPv4 boxes)
+  const MASK = {
+    // hex: keep 0-9 A-F (auto-capitalised), whitespace, and a leading ':' (Modbus ASCII). Letter O → 0. "0x" prefixes are dropped,
+    // , ; . - _ / become spaces (so byte boundaries survive). Anything else (G–Z, symbols) is removed with a warning.
+    hex(v) {
+      let bad = false, out = v.replace(/0x/gi, '');
+      out = out.replace(/[oO]/g, '0').replace(/[,;._\/\-]/g, ' ').replace(/(?!^):/g, ' ');
+      out = out.replace(/[^0-9a-fA-F:\s]/g, () => { bad = true; return ''; }).toUpperCase();
+      return { v: out, bad };
+    },
+    // ip: digits, dots and '/' only; the address + mask form ("10.0.0.5 255.255.255.0") keeps ONE space when allowSpace is set.
+    ip(v, allowSpace) {
+      let bad = false, out = v.replace(/[oO]/g, '0');
+      out = out.replace(allowSpace ? /[^0-9./ ]/g : /[^0-9./]/g, () => { bad = true; return ''; });
+      if (allowSpace) out = out.replace(/^ +/, '').replace(/ {2,}/g, ' ');
+      return { v: out, bad };
+    },
+  };
+  function attachMask(sel, kind, opts) {
+    const inp = $(sel); if (!inp) return;
+    const warn = el('small', { class: 'fieldwarn', role: 'status', 'aria-live': 'polite', hidden: true, text: 'Invalid character removed' });
+    inp.insertAdjacentElement('afterend', warn);
+    let tm;
+    const flash = (msg) => { warn.textContent = msg; warn.hidden = false; clearTimeout(tm); tm = setTimeout(() => { warn.hidden = true; }, 2200); };
+    // capture phase: runs before the tool's own input handler, so it always sees the cleaned value
+    inp.addEventListener('input', (e) => {
+      if (e.isComposing) return;
+      const raw = inp.value, pos = inp.selectionStart == null ? raw.length : inp.selectionStart;
+      const f = (s) => (kind === 'hex' ? MASK.hex(s) : MASK.ip(s, opts && opts.space));
+      const b = f(raw.slice(0, pos)), r = f(raw.slice(pos)); let full = b.v + r.v;
+      if (kind === 'hex') {
+        full = full.replace(/(?!^):/g, ' '); // only a LEADING colon (Modbus ASCII start) survives
+        const c = full.replace(/[ \t]{2,}/g, ' '); // tidy the gaps left where characters were removed
+        if (c !== full) { b.v = b.v.replace(/[ \t]{2,}/g, ' '); if (/[ \t]$/.test(b.v)) r.v = r.v.replace(/^[ \t]+/, ''); full = b.v + r.v.replace(/[ \t]{2,}/g, ' '); }
+      }
+      if (full !== raw) { inp.value = full; try { inp.setSelectionRange(b.v.length, b.v.length); } catch (x) { /* non-text input */ } }
+      if (b.bad || r.bad) flash('Invalid character removed');
+    }, true);
+  }
+  attachMask('#mb-input', 'hex'); attachMask('#ck-input', 'hex');
+  attachMask('#sn-in', 'ip', { space: true }); attachMask('#sn-chk', 'ip');
+
+  // ------------------------------------------------------------------ one-click demos
+  $('#mb-demo').addEventListener('click', () => {
+    $('#mb-input').value = '01 03 00 00 00 0A C5 CC'; // valid request with the CRC deliberately wrong (…CD → …CC)
+    $('#mb-mode').value = 'auto'; $('#mb-dir').value = 'auto';
+    $('#mb-analyze').click(); toast('Loaded a sample frame with a bad CRC');
+  });
+  $('#log-demo').addEventListener('click', () => {
+    const p = TP.logPresets.find((x) => x.id === 'dcom') || TP.logPresets[0];
+    $('#log-input').value = p.text; $('#log-analyze').click(); toast('Loaded sample: ' + p.label);
+  });
 
   // ------------------------------------------------------------------ init
   renderOpc();
