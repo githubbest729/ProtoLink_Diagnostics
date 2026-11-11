@@ -70,3 +70,6 @@ Recoverable read errors (framing, parity, overrun) re-acquire the reader; a `Net
 - **Serial dock** (`#ser-dock`) is always in the DOM of the Modbus tab; the sniffer card (`#ser-card`) holds the table and transmit box and opens itself on connect.
 - **Accordions** are native `<details>` (no JS needed to toggle); state persists in `localStorage` key `pl.tools`, failures are swallowed.
 - **CSP stays strict** (`style-src 'self'`): all dynamic styling uses CSSOM `style.setProperty`, never inline `style=""`.
+- **v1.3 sticky inputs:** `.stick-in` cards (`#mb-stick`, `#log-stick`) are `position: sticky`; on the Modbus tab their `top` is `--dock-top + --dock-h + 6px`, so the serial dock (now first in the tab) pins above them. `updateStickyOffsets()` also adds the pinned card's height to `scroll-padding-top`.
+- **Tooltips** are `span.tip[data-tip]` with `::after { content: attr(data-tip) }`; `app.js` only stops taps on a tip from toggling a parent `<summary>`/`<label>`.
+- **Toast:** `toast(msg, ms)` restarts a CSS slide-up animation, then adds `.out` (opacity fade) after `ms` and hides the element 450 ms later.
