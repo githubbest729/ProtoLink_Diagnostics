@@ -271,3 +271,6 @@ details.tool[open] > summary { margin-bottom: 10px; }
 .gauge.g-good .gauge-track > i { background: #2ea043; } .gauge.g-warn .gauge-track > i { background: #f5a524; } .gauge.g-bad .gauge-track > i { background: #e5484d; }
 .gauge-scale { display: flex; justify-content: space-between; margin-top: 3px; color: var(--muted); font: .75rem var(--mono); }
 @media (prefers-reduced-motion: reduce) { .gauge-track > i { transition: none; } }
+
+/* ---------- v1.5: plain-English purpose line under each tool title ---------- */
+.tool-purpose-text { margin: 2px 0 14px; color: var(--muted); font-size: .85rem; font-style: italic; line-height: 1.45; }

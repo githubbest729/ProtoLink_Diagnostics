@@ -263,6 +263,7 @@
       <button class="btn small" id="tools-toggle" type="button">Expand all</button>
     </div>
     <details class="card tool" id="tool-modicon" data-tool="modicon"><summary><h2 class="inline">Modicon Address ⇄ Protocol Offset</h2></summary>
+      <p class="tool-purpose-text">Different industrial devices use different numbering systems. This tool translates old-school PLC register numbers into modern memory offsets so different brands can talk to each other.</p>
       <label for="ad-input" class="lbl">Modicon reference (40001 or 400001)</label>
       <input id="ad-input" type="text" inputmode="numeric" autocomplete="off" placeholder="e.g., 40001">
       <div id="ad-out" aria-live="polite"></div>
@@ -276,6 +277,7 @@
     </details>
 
     <details class="card tool" id="tool-endian" data-tool="endian"><summary><h2 class="inline">PLC Endianness <span class="tip" tabindex="0" role="note" aria-label="Byte and word order. ABCD is Big-Endian, DCBA is Little-Endian" data-tip="Byte and word order. ABCD is Big-Endian, DCBA is Little-Endian">?</span> &amp; Word Swapper (32 / 64-bit)</h2></summary>
+      <p class="tool-purpose-text">Fixes scrambled numbers. Different brands (like Siemens and Allen-Bradley) read data backwards or forwards. This tool flips the bytes around until the number makes sense.</p>
       <p class="hint">Scrambled floats between Siemens, Rockwell and Modbus devices are usually a byte/word order problem. Enter what you <em>read</em> and see every interpretation side by side.</p>
       <div class="grid">
         <label class="sel"><span>Width</span><select id="en-width"><option value="32">32-bit (2 registers)</option><option value="64">64-bit (4 registers)</option></select></label>
@@ -302,6 +304,7 @@
     </details>
 
     <details class="card tool" id="tool-loop" data-tool="loop"><summary><h2 class="inline">4–20 mA Loop Calculator</h2></summary>
+      <p class="tool-purpose-text">Sensors (like temperature or pressure meters) send information using physical electricity, usually between 4 and 20 milliamps. This tool checks if the electrical signal matches the numbers you see on your computer screen.</p>
       <div class="row">
         <button class="btn small" type="button" data-lp="0,100,bar">0–100 bar</button>
         <button class="btn small" type="button" data-lp="-50,150,°C">−50…150 °C</button>
@@ -342,6 +345,7 @@
     </details>
 
     <details class="card tool" id="tool-subnet" data-tool="subnet"><summary><h2 class="inline">IPv4 Subnet &amp; CIDR <span class="tip" tabindex="0" role="note" aria-label="Classless Inter-Domain Routing. Example: /24 means subnet mask 255.255.255.0" data-tip="Classless Inter-Domain Routing. Example: /24 means subnet mask 255.255.255.0">?</span> Planner</h2></summary>
+      <p class="tool-purpose-text">Calculates the local networking rules. It tells you exactly which IP addresses your PLCs, HMIs, and computers can use so they can find each other on the plant floor without getting blocked.</p>
       <label for="sn-in" class="lbl">Address with prefix (192.168.1.50/24) or address + mask (10.0.0.5 255.255.255.240)</label>
       <input id="sn-in" type="text" autocomplete="off" spellcheck="false" placeholder="192.168.1.50/24">
       <div id="sn-out" aria-live="polite"></div>
@@ -353,12 +357,14 @@
     </details>
 
     <details class="card tool" id="tool-crc" data-tool="crc"><summary><h2 class="inline">CRC-16 / LRC Calculator</h2></summary>
+      <p class="tool-purpose-text">A mathematical checker. It proves whether a message traveling across a physical wire is perfectly intact or if it got corrupted and scrambled by electrical noise.</p>
       <label for="ck-input" class="lbl">Hex bytes WITHOUT checksum</label>
       <input id="ck-input" type="text" autocomplete="off" spellcheck="false" placeholder="e.g., 01 03 00 00 00 0A">
       <div id="ck-out" aria-live="polite"></div>
     </details>
 
     <details class="card tool" id="tool-scale" data-tool="scale"><summary><h2 class="inline">Linear Scaling (raw → engineering units)</h2></summary>
+      <p class="tool-purpose-text">Converts raw computer gibberish (like a signal reading of 13824) into real-world, human measurements (like 50 degrees Celsius or 100 PSI).</p>
       <div class="row">
         <button class="btn small" type="button" data-preset="5530,27648,4,20">Siemens 4-20 mA (5530…27648)</button>
         <button class="btn small" type="button" data-preset="0,27648,0,100">Siemens 0-27648 → 0-100</button>
@@ -402,7 +408,7 @@
 </main>
 
 <footer class="foot">
-  <span>ProtoLink Diagnostics v1.4.0</span> · <a href="privacy.html">Privacy</a> ·
+  <span>ProtoLink Diagnostics v1.5.0</span> · <a href="privacy.html">Privacy</a> ·
   <span>100% client-side. Verify critical settings against vendor documentation.</span>
 </footer>
 

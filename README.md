@@ -4,7 +4,7 @@
   <p><em>Offline-capable PWA for SCADA field engineers: Modbus frame analyzer, OPC DA/UA troubleshooter (Wonderware-focused), and log snippet parser.</em></p>
   
   <p>
-    <img src="https://img.shields.io/badge/version-1.4.0-blue.svg?style=flat-square" alt="Version 1.4.0" />
+    <img src="https://img.shields.io/badge/version-1.5.0-blue.svg?style=flat-square" alt="Version 1.5.0" />
     <img src="https://img.shields.io/badge/PWA-Offline_Ready-success.svg?style=flat-square" alt="Offline Ready" />
     <img src="https://img.shields.io/badge/Architecture-100%25_Client_Side-orange.svg?style=flat-square" alt="Client Side" />
     <img src="https://img.shields.io/badge/Hardware-Web_Serial_API-9cf.svg?style=flat-square" alt="Web Serial API" />
@@ -51,6 +51,10 @@ graph TD
 | 💾 **Saved** | Save frames and field notes to IndexedDB on the device; export to JSON, CSV, or TXT. |
 
 ---
+
+## 💬 What's new in v1.5.0
+
+Every tool in the Tools tab now has a short, plain-English “what is this for?” line (`.tool-purpose-text`) right under its title, for beginners and students.
 
 ## 🎓 What's new in v1.4.0 (beginner aids in the Tools tab)
 
@@ -137,7 +141,7 @@ Everything uses relative paths, so it works from a repo sub-path or a custom dom
 - `.well-known/assetlinks.json` / `apple-app-site-association` are empty stubs (only needed if you later wrap the PWA as a Play Store TWA / iOS app).
 
 ## 🔄 Shipping updates
-1. Change files, bump `VERSION` in `service-worker.js` (currently `1.4.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
+1. Change files, bump `VERSION` in `service-worker.js` (currently `1.5.0`; new files must also be added to `PRECACHE`) (the workflow also appends the commit SHA to the cache name).
 2. Users who already installed the app see a **"Reload to update"** banner when online.
 
 ## 💻 Local development / tests
