@@ -158,7 +158,7 @@ textarea:focus, input:focus, select:focus { border-color: var(--amber); outline:
 .l-ww { color: var(--amber); } .l-ip { color: #93c5fd; } .l-ts { color: #6e7a8a; font-weight: 400 !important; }
 .l-custom { color: #111; background: var(--amber) !important; }
 
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(76px + env(safe-area-inset-bottom)); background: #e6edf3; color: #111; padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 50; max-width: 92vw; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); animation: toast-in .28s ease-out; transition: opacity .4s ease; bottom: calc(76px + env(safe-area-inset-bottom)); background: #e6edf3; color: #111; padding: 10px 16px; border-radius: 8px; font-weight: 600; z-index: 50; max-width: 92vw; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
 
 @media (min-width: 820px) {
   body { padding-bottom: 0; }
@@ -218,3 +218,31 @@ details.tool[open] > summary { margin-bottom: 10px; }
 .cpy .t { font-size: .62rem; text-transform: uppercase; letter-spacing: .04em; }
 .cv { display: inline-flex; align-items: center; gap: 2px; flex-wrap: wrap; }
 @media (pointer: coarse) { .cpy { min-width: 36px; height: 36px; } }
+
+/* ---------- v1.3: status pills ---------- */
+.verdict .pill { display: inline-block; padding: 3px 13px; border-radius: 999px; font-size: .82rem; font-weight: 700; letter-spacing: .02em; line-height: 1.4; opacity: 1; }
+.verdict .pill.good { background: #1a7f37; color: #fff; }
+.verdict .pill.warn { background: #f5a524; color: #1b1400; }
+.verdict .pill.bad { background: #c62828; color: #fff; }
+
+/* ---------- v1.3: CSS-only (?) tooltips (hover, keyboard focus or tap) ---------- */
+.tip { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 1.3em; height: 1.3em; margin-left: .4em; border-radius: 50%; background: var(--panel2); border: 1px solid var(--line); color: var(--muted); font: 700 .72rem/1 var(--mono); cursor: help; vertical-align: middle; text-transform: none; letter-spacing: 0; user-select: none; }
+.tip:hover, .tip:focus { color: var(--text, #e6edf3); border-color: var(--muted); outline: none; }
+.tip:focus-visible { outline: 2px solid #58a6ff; outline-offset: 2px; }
+.tip::after { content: attr(data-tip); position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%); width: max-content; max-width: min(240px, 66vw); padding: 8px 10px; background: #2d333b; color: #e6edf3; border: 1px solid #484f58; border-radius: 6px; font: 400 .8rem/1.4 system-ui, sans-serif; text-align: left; white-space: normal; box-shadow: 0 6px 18px rgba(0,0,0,.55); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .15s ease; z-index: 60; }
+.tip:hover::after, .tip:focus::after { opacity: 1; visibility: visible; }
+.tip.tip-l::after { left: -8px; transform: none; }
+.tip.tip-r::after { left: auto; right: -8px; transform: none; }
+
+/* ---------- v1.3: toast slide-up + fade ---------- */
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 18px); } to { opacity: 1; transform: translate(-50%, 0); } }
+.toast.out { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } .tip::after { transition: none; } }
+
+/* ---------- v1.3: sticky input boxes (Modbus frame, Log text) ---------- */
+.stick-in { position: sticky; top: var(--dock-top, 61px); z-index: 17; box-shadow: 0 -7px 0 0 var(--bg), 0 6px 14px rgba(0,0,0,.45); } /* first shadow hides content scrolling through the gap above */
+.dock { box-shadow: 0 -7px 0 0 var(--bg), 0 6px 14px rgba(0,0,0,.45); }
+#tab-modbus .stick-in { top: calc(var(--dock-top, 61px) + var(--dock-h, 0px) + 6px); }
+.stick-in textarea { max-height: 26vh; resize: vertical; }
+@media (max-width: 600px) { .stick-in { padding: 8px 10px; } .stick-in h2 { font-size: 1rem; margin: 0 0 4px; } .stick-in .lbl { font-size: .78rem; margin-bottom: 4px; } .stick-in textarea { max-height: 17vh; min-height: 64px; } }
+@media (max-height: 560px) { .stick-in { position: static; box-shadow: none; } } /* landscape phones: not enough room to pin */
