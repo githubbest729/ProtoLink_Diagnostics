@@ -2,7 +2,7 @@
 // v1.2 helpers: copy-value extraction, CSV/TXT export, log presets.  Run: node tests/uidata.test.js
 const assert = require('assert');
 const path = require('path');
-['editor', 'validator', 'templates', 'export', 'instrument'].forEach((f) => require(path.join('..', 'js', f + '.js')));
+['editor', 'validator', 'templates', 'export', 'instrument', 'tag-converter'].forEach((f) => require(path.join('..', 'js', f + '.js')));
 const { modbus: MB, exporter: EX, templates: T, editor: ED } = globalThis.PL;
 
 let n = 0;
@@ -83,6 +83,21 @@ t('loopStatus returns the pill label for every band (4–20 and 0–20 mA)', () 
   assert.strictEqual(lab(3.5), 'Fault'); assert.strictEqual(lab(0), 'Fault'); assert.strictEqual(lab(21.5), 'Fault');
   assert.strictEqual(lab(NaN), 'Invalid'); assert.strictEqual(lab(10, '0-20'), 'Normal'); assert.strictEqual(lab(21, '0-20'), 'Over-range');
   assert.strictEqual(LP.loopStatus(12, '4-20').level, 'good'); assert.strictEqual(LP.loopStatus(3.7, '4-20').level, 'warn'); assert.strictEqual(LP.loopStatus(3.5, '4-20').level, 'bad');
+});
+
+t('gaugeState: 0 % at 4 mA, 100 % at 20 mA, colour bands match the spec', () => {
+  const G = (mA, m) => globalThis.PL.instrument.gaugeState(mA, m || '4-20');
+  assert.deepStrictEqual([G(4).pct, G(12).pct, G(20).pct], [0, 50, 100]);
+  [4, 12, 20].forEach((v) => assert.strictEqual(G(v).level, 'good'));
+  assert.strictEqual(G(3.9).level, 'warn'); assert.strictEqual(G(3.7).level, 'warn'); assert.strictEqual(G(20.3).level, 'warn'); assert.strictEqual(G(20.8).level, 'warn');
+  assert.strictEqual(G(3.5).level, 'bad'); assert.strictEqual(G(0).level, 'bad'); assert.strictEqual(G(22).level, 'bad');
+  assert.strictEqual(G(22).pct, 100); assert.strictEqual(G(2).pct, 0); assert.strictEqual(G(NaN).level, 'none');
+  assert.deepStrictEqual([G(0, '0-20').pct, G(10, '0-20').pct, G(10, '0-20').level], [0, 50, 'good']);
+});
+t('orderLabel gives the byte-block letters for every layout (32- and 64-bit)', () => {
+  const OL = globalThis.PL.convert.orderLabel;
+  assert.deepStrictEqual(['ABCD', 'DCBA', 'BADC', 'CDAB'].map((k) => OL(k, 4)), ['ABCD', 'DCBA', 'BADC', 'CDAB']);
+  assert.strictEqual(OL('CDAB', 8), 'GHEFCDAB'); assert.strictEqual(OL('BADC', 8), 'BADCFEHG'); assert.strictEqual(OL('DCBA', 8), 'HGFEDCBA');
 });
 
 console.log(`\n${n} ui-data test groups passed`);
