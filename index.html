@@ -54,26 +54,6 @@
 
   <!-- ===================================================== MODBUS -->
   <section class="panel" id="tab-modbus" role="tabpanel" aria-labelledby="t-modbus">
-    <div class="card">
-      <h2>Modbus Frame Analyzer</h2>
-      <label for="mb-input" class="lbl">Paste a raw frame (hex). RTU incl. CRC, TCP incl. MBAP header, or ASCII <code>:0103…LRC</code></label>
-      <textarea id="mb-input" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="01 03 00 00 00 0A C5 CD"></textarea>
-      <div class="row">
-        <label class="sel"><span>Mode</span>
-          <select id="mb-mode"><option value="auto">Auto-detect</option><option value="rtu">RTU (CRC-16)</option><option value="tcp">TCP (MBAP)</option><option value="ascii">ASCII (LRC)</option></select></label>
-        <label class="sel"><span>Direction</span>
-          <select id="mb-dir"><option value="auto">Auto</option><option value="request">Request</option><option value="response">Response</option></select></label>
-        <label class="sel grow"><span>Examples</span>
-          <select id="mb-sample"><option value="">Load an example…</option></select></label>
-      </div>
-      <div class="row">
-        <button class="btn primary" id="mb-analyze" type="button">Analyze</button>
-        <button class="btn" id="mb-paste" type="button">Paste</button>
-        <button class="btn" id="mb-clear" type="button">Clear</button>
-      </div>
-      <p class="hint" id="mb-parse-msg" role="status"></p>
-    </div>
-
     <div class="dock" id="ser-dock" role="group" aria-label="Serial connection">
       <div class="dock-row">
         <span class="led off" id="ser-led" aria-hidden="true"></span>
@@ -94,6 +74,28 @@
         <button class="btn small" id="ser-disconnect" type="button" disabled>Disconnect</button>
         <button class="btn small" id="ser-pause" type="button" disabled>Pause</button>
       </div>
+    </div>
+
+    <div class="card stick-in" id="mb-stick">
+      <h2>Modbus Frame Analyzer</h2>
+      <label for="mb-input" class="lbl">Paste a raw frame (hex). RTU incl. CRC, TCP incl. MBAP header <span class="tip" tabindex="0" role="note" aria-label="Modbus Application Protocol header used in Modbus TCP" data-tip="Modbus Application Protocol header used in Modbus TCP">?</span>, or ASCII <code>:0103…LRC</code></label>
+      <textarea id="mb-input" rows="3" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" placeholder="01 03 00 00 00 0A C5 CD"></textarea>
+    </div>
+    <div class="card">
+      <div class="row">
+        <label class="sel"><span>Mode</span>
+          <select id="mb-mode"><option value="auto">Auto-detect</option><option value="rtu">RTU (CRC-16)</option><option value="tcp">TCP (MBAP)</option><option value="ascii">ASCII (LRC)</option></select></label>
+        <label class="sel"><span>Direction</span>
+          <select id="mb-dir"><option value="auto">Auto</option><option value="request">Request</option><option value="response">Response</option></select></label>
+        <label class="sel grow"><span>Examples</span>
+          <select id="mb-sample"><option value="">Load an example…</option></select></label>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="mb-analyze" type="button">Analyze</button>
+        <button class="btn" id="mb-paste" type="button">Paste</button>
+        <button class="btn" id="mb-clear" type="button">Clear</button>
+      </div>
+      <p class="hint" id="mb-parse-msg" role="status"></p>
     </div>
 
     <details class="card" id="ser-card">
@@ -150,7 +152,7 @@
     </details>
 
     <div class="legend" aria-label="Legend">
-      <span class="chip cls-hdr">MBAP header</span><span class="chip cls-addr">Slave / Unit</span><span class="chip cls-fc">Function</span>
+      <span class="chip cls-hdr">MBAP header <span class="tip" tabindex="0" role="note" aria-label="Modbus Application Protocol header used in Modbus TCP" data-tip="Modbus Application Protocol header used in Modbus TCP">?</span></span><span class="chip cls-addr">Slave / Unit</span><span class="chip cls-fc">Function</span>
       <span class="chip cls-reg">Address</span><span class="chip cls-qty">Quantity / count</span><span class="chip cls-data">Data</span>
       <span class="chip cls-crc">CRC / LRC ✓</span><span class="chip cls-exc">Exception</span><span class="chip cls-err">Error</span>
     </div>
@@ -223,10 +225,12 @@
 
   <!-- ===================================================== LOGS -->
   <section class="panel" id="tab-logs" role="tabpanel" aria-labelledby="t-logs" hidden>
-    <div class="card">
+    <div class="card stick-in" id="log-stick">
       <h2>Log Snippet Parser</h2>
       <label for="log-input" class="lbl">Paste device / Wonderware SMC Log Viewer text — or open a .log/.txt file (never leaves this device)</label>
       <textarea id="log-input" rows="8" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Paste log lines here…"></textarea>
+    </div>
+    <div class="card">
       <div class="row">
         <button class="btn primary" id="log-analyze" type="button">Analyze</button>
         <label class="sel"><span>Sample logs</span><select id="log-preset" aria-label="Load a sample log"><option value="">Load a sample…</option></select></label>
@@ -271,7 +275,7 @@
       <div id="ad2-out" aria-live="polite"></div>
     </details>
 
-    <details class="card tool" id="tool-endian" data-tool="endian"><summary><h2 class="inline">PLC Endianness &amp; Word Swapper (32 / 64-bit)</h2></summary>
+    <details class="card tool" id="tool-endian" data-tool="endian"><summary><h2 class="inline">PLC Endianness <span class="tip" tabindex="0" role="note" aria-label="Byte and word order. ABCD is Big-Endian, DCBA is Little-Endian" data-tip="Byte and word order. ABCD is Big-Endian, DCBA is Little-Endian">?</span> &amp; Word Swapper (32 / 64-bit)</h2></summary>
       <p class="hint">Scrambled floats between Siemens, Rockwell and Modbus devices are usually a byte/word order problem. Enter what you <em>read</em> and see every interpretation side by side.</p>
       <div class="grid">
         <label class="sel"><span>Width</span><select id="en-width"><option value="32">32-bit (2 registers)</option><option value="64">64-bit (4 registers)</option></select></label>
@@ -332,7 +336,7 @@
       <div id="oh-out" aria-live="polite"></div>
     </details>
 
-    <details class="card tool" id="tool-subnet" data-tool="subnet"><summary><h2 class="inline">IPv4 Subnet &amp; CIDR Planner</h2></summary>
+    <details class="card tool" id="tool-subnet" data-tool="subnet"><summary><h2 class="inline">IPv4 Subnet &amp; CIDR <span class="tip" tabindex="0" role="note" aria-label="Classless Inter-Domain Routing. Example: /24 means subnet mask 255.255.255.0" data-tip="Classless Inter-Domain Routing. Example: /24 means subnet mask 255.255.255.0">?</span> Planner</h2></summary>
       <label for="sn-in" class="lbl">Address with prefix (192.168.1.50/24) or address + mask (10.0.0.5 255.255.255.240)</label>
       <input id="sn-in" type="text" autocomplete="off" spellcheck="false" placeholder="192.168.1.50/24">
       <div id="sn-out" aria-live="polite"></div>
@@ -393,7 +397,7 @@
 </main>
 
 <footer class="foot">
-  <span>ProtoLink Diagnostics v1.2.0</span> · <a href="privacy.html">Privacy</a> ·
+  <span>ProtoLink Diagnostics v1.3.0</span> · <a href="privacy.html">Privacy</a> ·
   <span>100% client-side. Verify critical settings against vendor documentation.</span>
 </footer>
 
